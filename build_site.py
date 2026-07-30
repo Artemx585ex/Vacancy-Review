@@ -253,15 +253,14 @@ BODY_CORE = """<div class="wrap">
 
 <dialog class="tiers" id="tierDlg" aria-labelledby="tierDlgTitle">
   <h3 id="tierDlgTitle">Как считаются тиры</h3>
-  <p>Тир — уровень проблемности вакансии по числу <b>критических ошибок</b>
-  (красных нарушений гайда):</p>
+  <p>Тир — уровень приоритета исправления. Учитываются отдельные ошибки, а не
+  только проблемные критерии:</p>
   <ul>
-    <li><span class="tierpill tier1">Т1</span>больше 5 критических ошибок — надо чинить в первую очередь;</li>
-    <li><span class="tierpill tier2">Т2</span>от 2 до 5 критических ошибок;</li>
-    <li><span class="tierpill tier3">Т3</span>меньше 2 критических ошибок (0–1).</li>
+    <li><span class="tierpill tier1">Т1</span>есть хотя бы 1 критичная ошибка или больше 7 некритичных;</li>
+    <li><span class="tierpill tier2">Т2</span>от 4 до 7 некритичных ошибок;</li>
+    <li><span class="tierpill tier3">Т3</span>от 1 до 3 некритичных ошибок.</li>
   </ul>
-  <p>Красный статус — точное нарушение гайда, жёлтый — эвристика, которую стоит
-  проверить глазами; на тир жёлтые замечания не влияют.</p>
+  <p>Вакансии без ошибок выделяются отдельно и не относятся к тирам.</p>
   <button class="close" type="button" id="tierDlgClose">Понятно</button>
 </dialog>
 
@@ -274,7 +273,10 @@ BODY_CORE = """<div class="wrap">
     <select id="fTier" aria-label="Фильтр по тиру"><option value="">Все тиры</option></select>
     <select id="fDir" aria-label="Фильтр по направлению"><option value="">Все направления</option></select>
     <select id="fTeam" aria-label="Фильтр по команде"><option value="">Все команды</option></select>
-    <label class="chk"><input type="checkbox" id="fRed"> только с критическими ошибками</label>
+    <select id="fCritical" aria-label="Фильтр по числу критических ошибок">
+      <option value="">Критические ошибки: все</option><option value="1">1+</option>
+      <option value="2">2+</option><option value="3">3+</option><option value="5">5+</option>
+    </select>
     <label class="chk" id="fClosedLbl" hidden><input type="checkbox" id="fClosed"> <span>скрыть закрытые</span></label>
     <div class="spacer"></div>
     <div class="legend">
@@ -310,11 +312,11 @@ const DATA = JSON.parse(document.getElementById('data').textContent);
 const ICONS = { green: '✓', yellow: '!', red: '✕' };
 const ORDER = { red: 0, yellow: 1, green: 2 };
 const TIERS = [
-  { n: 1, color: '#d03b3b', desc: 'больше 5 критических ошибок' },
-  { n: 2, color: '#d99a06', desc: '2–5 критических ошибок' },
-  { n: 3, color: '#0ca30c', desc: 'меньше 2 критических ошибок' },
+  { n: 1, color: '#d03b3b', desc: 'есть критичная ошибка или больше 7 некритичных' },
+  { n: 2, color: '#d99a06', desc: '4–7 некритичных ошибок' },
+  { n: 3, color: '#0ca30c', desc: '1–3 некритичных ошибок' },
 ];
-const tierOf = v => v._reds > 5 ? 1 : v._reds >= 2 ? 2 : 3;
+const tierOf = v => v._reds >= 1 || v._yellows > 7 ? 1 : v._yellows >= 4 ? 2 : v._yellows >= 1 ? 3 : 0;
 const LOCAL = location.protocol === 'file:';
 
 let sortKey = '_tier', sortAsc = false, open = new Set();
@@ -332,7 +334,8 @@ DATA.vacancies.forEach(v => {
 // открытом двойным кликом, и на опубликованной ссылке бэкенда нет
 const SERVED = ['localhost', '127.0.0.1'].includes(location.hostname);
 document.getElementById('updline').innerHTML =
-  (DATA.generated_at ? `Последнее обновление данных: <b>${DATA.generated_at}</b> · ` : '') +
+  (DATA.refresh_schedule ? `<b>${DATA.refresh_schedule}</b> · ` : '') +
+  (DATA.generated_at ? `последнее обновление: <b>${DATA.generated_at}</b> · ` : '') +
   (SERVED ? 'обновить можно кнопкой «⟳ Обновить данные» в правом верхнем углу'
           : 'данные обновляются при каждом запуске «Запустить.command» (update.sh)');
 
@@ -440,7 +443,7 @@ for (const [id, list] of [['fDir', dirs], ['fTeam', teams]]) {
 }
 
 // состояние фильтров в URL-хеше
-const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fRed', 'fClosed'];
+const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fClosed'];
 function saveHash() {
   const p = new URLSearchParams();
   for (const id of FIELDS) {
@@ -488,7 +491,8 @@ function charts() {
     </button>`).join('');
   const redByCrit = DATA.criteria.map(c => ({
     label: c.label,
-    n: DATA.vacancies.filter(v => v.criteria[c.key]?.status === 'red').length,
+    n: DATA.vacancies.reduce((sum, v) => sum +
+      (v.criteria[c.key]?.comments ?? []).filter(x => x.severity === 'red').length, 0),
   })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
   const maxC = Math.max(...redByCrit.map(x => x.n), 1);
   const critBars = redByCrit.map(x => `
@@ -508,13 +512,13 @@ function charts() {
   box.innerHTML = `
     <div class="chart">
       <h3>Распределение по тирам</h3>
-      <div class="hint">от самых проблемных (Т1) к чистым (Т3) · клик по бару фильтрует таблицу ·
+      <div class="hint">от высокого (Т1) к низкому (Т3) приоритету · клик по бару фильтрует таблицу ·
         <button class="whatis" type="button" onclick="tierDlg.showModal()">что такое тиры?</button></div>
       <div class="tierbars">${tierBars}</div>
     </div>
     <div class="chart">
-      <h3>Нарушения по критериям</h3>
-      <div class="hint">у скольких вакансий красный статус по критерию</div>
+      <h3>Критические ошибки по критериям</h3>
+      <div class="hint">фактическое число критичных ошибок, а не число проблемных вакансий</div>
       <div class="hbars">${critBars}</div>
     </div>
     <div class="chart">
@@ -550,7 +554,7 @@ function header() {
     th.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } };
     tr.append(th);
   };
-  mk('_tier', 'Тир', 'tier-col', 'Тир проблемности: Т1 — хуже всего, Т5 — чисто');
+  mk('_tier', 'Тир', 'tier-col', 'Тир приоритета: Т1 — высокий, Т3 — низкий');
   mk('title', 'Вакансия');
   DATA.criteria.forEach(c => mk(c.key, c.label, 'crit-col'));
 }
@@ -560,19 +564,19 @@ function visible() {
   const ti = document.getElementById('fTier').value;
   const d = document.getElementById('fDir').value;
   const t = document.getElementById('fTeam').value;
-  const r = document.getElementById('fRed').checked;
+  const criticalMin = +document.getElementById('fCritical').value || 0;
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
     (!ti || v._tier === +ti) &&
-    (!d || v.direction === d) && (!t || v.team === t) && (!r || v._reds > 0) &&
+    (!d || v.direction === d) && (!t || v.team === t) && (!criticalMin || v._reds >= criticalMin) &&
     (!hc || !v.closed));
   rows.sort((a, b) => {
     let x, y;
     if (sortKey === 'title') { x = a.title; y = b.title; }
     else if (sortKey === '_tier') {
-      x = a._tier * 1e6 - a._reds * 1000 - a._yellows;
-      y = b._tier * 1e6 - b._reds * 1000 - b._yellows;
+      x = (a._tier || 4) * 1e6 - a._reds * 1000 - a._yellows;
+      y = (b._tier || 4) * 1e6 - b._reds * 1000 - b._yellows;
     }
     else { x = ORDER[a.criteria[sortKey]?.status ?? 'green']; y = ORDER[b.criteria[sortKey]?.status ?? 'green']; }
     const cmp = typeof x === 'string' ? x.localeCompare(y, 'ru') : x - y;
@@ -583,7 +587,7 @@ function visible() {
 
 function resetFilters() {
   for (const id of ['q', 'fTier', 'fDir', 'fTeam']) document.getElementById(id).value = '';
-  document.getElementById('fRed').checked = false;
+  document.getElementById('fCritical').value = '';
   document.getElementById('fClosed').checked = false;
   render();
 }
@@ -601,7 +605,7 @@ function downloadCsv(lines, name) {
 function exportCsv() {
   const rows = visible();
   const head = ['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Локация', 'Опубликована',
-    'Критических ошибок', 'Жёлтых замечаний', ...DATA.criteria.map(c => c.label)];
+    'Критических ошибок', 'Некритичных ошибок', ...DATA.criteria.map(c => c.label)];
   const lines = [head.map(csvCell).join(';')];
   rows.forEach(v => lines.push([
     'Т' + v._tier, v.title, v.url, v.direction, v.team, v.location, v.published,
@@ -616,11 +620,11 @@ function exportProblems() {
   const label = {};
   DATA.criteria.forEach(c => label[c.key] = c.label);
   const lines = [['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Критерий', 'Статус',
-    'Замечание', 'Цитата', 'Ссылка с подсветкой'].map(csvCell).join(';')];
+    'Ошибка', 'Цитата', 'Ссылка с подсветкой'].map(csvCell).join(';')];
   rows.forEach(v => Object.entries(v.criteria).forEach(([k, c]) =>
     c.comments.forEach(x => lines.push([
       'Т' + v._tier, v.title, v.url, v.direction, v.team, label[k],
-      x.severity === 'red' ? 'нарушение' : 'посмотреть', x.text, x.quote ?? '',
+      x.severity === 'red' ? 'критичная' : 'некритичная', x.text, x.quote ?? '',
       x.quote ? highlightUrl(v, x) : '',
     ].map(csvCell).join(';')))));
   downloadCsv(lines, 'vacancy-problems.csv');
@@ -655,15 +659,21 @@ function render() {
     tr.tabIndex = 0;
     tr.setAttribute('aria-expanded', open.has(v.file));
     const cells = DATA.criteria.map(c => {
-      const st = v.criteria[c.key]?.status ?? 'green';
-      return `<td class="crit-col"><span class="chip ${st}" title="${c.label}: ${ICONS[st]}">${ICONS[st]}</span></td>`;
+      const comments = v.criteria[c.key]?.comments ?? [];
+      const red = comments.filter(x => x.severity === 'red').length;
+      const yellow = comments.filter(x => x.severity === 'yellow').length;
+      const counts = `${red ? `<span class="badge crit" title="${red} критичных ошибок">✕ ${red}</span>` : ''}` +
+        `${yellow ? `<span class="badge warn" title="${yellow} некритичных ошибок">! ${yellow}</span>` : ''}`;
+      return `<td class="crit-col">${counts || '<span class="chip green">✓</span>'}</td>`;
     }).join('');
     const badges =
       (v.closed ? `<span class="badge closed" title="Вакансии уже нет на career.avito.com">не на сайте</span>` : '') +
       (v._reds ? `<span class="badge crit">✕ ${v._reds}</span>` : '') +
       (v._yellows ? `<span class="badge warn">! ${v._yellows}</span>` : '');
-    tr.innerHTML = `<td class="tier-col"><span class="tierpill tier${v._tier}"
-        title="Тир ${v._tier}: ${TIERS[v._tier - 1].desc}">Т${v._tier}</span></td>
+    const tier = v._tier ? `<span class="tierpill tier${v._tier}"
+        title="Тир ${v._tier}: ${TIERS[v._tier - 1].desc}">Т${v._tier}</span>` :
+        '<span class="chip green" title="Ошибок нет">✓</span>';
+    tr.innerHTML = `<td class="tier-col">${tier}</td>
       <td class="vac"><span class="chev">${open.has(v.file) ? '▼' : '▶'}</span><a href="${v.url}"
         target="_blank" rel="noopener" title="Открыть вакансию на career.avito.com">${v.title}</a>
       <span class="badges">${badges}</span>
@@ -687,7 +697,9 @@ function render() {
         if (!cr || !cr.comments.length) return '';
         const lis = cr.comments.map(x => {
           const jump = x.quote ? ` <a class="jump" href="${highlightUrl(v, x)}" target="_blank"
-            rel="noopener" title="Открыть вакансию на сайте и подсветить это место">показать ↗</a>` : '';
+            rel="noopener" title="Открыть вакансию на сайте и подсветить это место">показать ↗</a>` :
+            ` <a class="jump" href="${v.url}" target="_blank" rel="noopener"
+            title="Открыть вакансию на career.avito.com">открыть вакансию ↗</a>`;
           return `<li class="${x.severity}">${esc(x.text)}${jump}</li>`;
         }).join('');
         return `<div class="dcard"><h4><span class="chip ${cr.status}">${ICONS[cr.status]}</span>${c.label}</h4><ul>${lis}</ul></div>`;
@@ -710,7 +722,7 @@ function render() {
 }
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-['q', 'fTier', 'fDir', 'fTeam', 'fRed', 'fClosed'].forEach(id =>
+['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 document.getElementById('csvBtn').onclick = exportCsv;
 document.getElementById('xlsBtn').onclick = exportProblems;

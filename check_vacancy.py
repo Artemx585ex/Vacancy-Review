@@ -17,9 +17,12 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import pathlib
 import re
 import sys
+import urllib.error
+import urllib.request
 
 # ---------- разбор md-файла ----------
 
@@ -73,6 +76,14 @@ CLICHES = re.compile(
     re.I,
 )
 
+# Признаки обязательных требований, по которым работодатель может обоснованно
+# принять решение по кандидату. Отсутствие таких признаков требует проверки ИИ.
+CONCRETE_REQUIREMENT = re.compile(
+    r"\d+\s*(?:год|лет|года)|опыт|знани|владен|умени|навык|образован|"
+    r"сертификат|английск|инструмент|программ|sql|python|excel|pn[l]?|api",
+    re.I,
+)
+
 YO_WORDS = re.compile(
     r"\b(ждем|еще|партнер\w*|отчет\w*|учет\w*|объем\w*|серьезн\w*|надежн\w*)\b"
 )
@@ -94,13 +105,13 @@ def check_title(vac):
     out = []
     title = vac["meta"].get("title", "")
     if re.search(r"[()]", title):
-        out.append(("red", f"скобки в названии: «{title}» — гайд запрещает скобки (2.4 п. 4)", title))
+        out.append(("yellow", f"скобки в названии: «{title}» — гайд советует избегать скобок (2.4 п. 4)", title))
     latin = re.findall(r"[A-Za-z][A-Za-z&-]+", title)
     role_words = {"manager", "senior", "junior", "lead", "head", "developer", "engineer",
                   "designer", "analyst", "director", "specialist", "product", "project", "owner"}
     bad = [w for w in latin if w.lower() in role_words]
     if bad:
-        out.append(("red", f"должность латиницей в названии: {', '.join(bad)} — название пишется по-русски (2.1)", title))
+        out.append(("yellow", f"должность латиницей в названии: {', '.join(bad)} — название пишется по-русски (2.1)", title))
     return out
 
 
@@ -115,8 +126,7 @@ def check_discrimination(vac):
         (r"\bгражданств\w*\b", "гражданство"),
     ]:
         for m in re.finditer(pat, body, re.I):
-            sev = "red" if what in ("возраст", "пол") else "yellow"
-            out.append((sev, f"возможная дискриминация ({what}): «…{context(body, m)}…» — ст. 3 и 64 ТК РФ",
+            out.append(("red", f"дискриминационное требование ({what}): «…{context(body, m)}…» — ст. 3 и 64 ТК РФ",
                         frag(body, m)))
     return out
 
@@ -133,26 +143,17 @@ def check_structure(vac):
 
 
 def check_list_format(vac):
-    caps, semis, dots = [], [], []
+    out = []
     for s in vac["sections"]:
         items = s["items"]
         for i, it in enumerate(items):
             if re.match(r"^[А-ЯЁ]", it):
-                caps.append(it)
+                out.append(("yellow", "пункт начинается с заглавной буквы; по гайду нужна строчная (1)", it))
             last = i == len(items) - 1
             if not last and not it.endswith(";"):
-                semis.append(it)
+                out.append(("yellow", "пункт должен заканчиваться точкой с запятой (1)", it))
             if last and items and not it.endswith("."):
-                dots.append(it)
-    out = []
-    if caps:
-        out.append(("red", f"пункты с заглавной буквы ({len(caps)} шт., должны начинаться со строчной): {examples(caps)}",
-                    caps[0]))
-    if semis:
-        out.append(("yellow", f"пункты без «;» на конце ({len(semis)} шт.): {examples(semis)}", semis[0]))
-    if dots:
-        out.append(("yellow", f"последний пункт поля должен заканчиваться точкой ({len(dots)} шт.): {examples(dots)}",
-                    dots[0]))
+                out.append(("yellow", "последний пункт поля должен заканчиваться точкой (1)", it))
     return out
 
 
@@ -163,19 +164,17 @@ def check_requirements_legal(vac):
         for it in sec["items"]:
             m = PERSONAL_QUALITIES.search(it)
             if m:
-                out.append(("yellow", f"личное качество в требованиях: «{shorten(it)}» — по нему нельзя юридически отказать; перенести в «Будет здорово, если вы» или убрать",
+                out.append(("red", f"личное качество в обязательных требованиях: «{shorten(it)}» — по нему нельзя юридически отказать; перенести в «Будет здорово, если вы» или убрать",
                             it))
+            elif not CONCRETE_REQUIREMENT.search(it):
+                out.append(("yellow", f"неконкретное требование: «{shorten(it)}» — проверьте, можно ли по нему законно отказать кандидату", it))
     return out
 
 
 def check_benefits(vac):
     body = vac["body"]
     missing = [name for name, pat in BENEFIT_BLOCKS if not pat.search(body)]
-    if not missing:
-        return []
-    sev = "red" if len(missing) >= 3 else "yellow"
-    listing = "; ".join(missing)
-    return [(sev, f"не хватает {len(missing)} из 5 обязательных блоков условий: {listing}")]
+    return [("red", f"нет обязательного блока условий: {name}") for name in missing]
 
 
 def check_cliches(vac):
@@ -186,56 +185,59 @@ def check_cliches(vac):
             hits[term] = [0, frag(vac["body"], m)]
         hits[term][0] += 1
     return [
-        ("yellow", f"клише/канцелярит/сленг: «{term}»{f' — {n} раза' if n > 1 else ''} (2.4)", quote)
-        for term, (n, quote) in hits.items()
+        ("yellow", f"клише/канцелярит/сленг: «{term}» (2.4)", quote)
+        for term, (_, quote) in hits.items()
     ]
 
 
 def check_typography(vac):
-    """Вся типографика вакансии (кавычки, тире, «ё», скобки и т.д.) — одним пунктом."""
+    """Каждое отклонение учитывается отдельно, а не одним статусом критерия."""
     body = vac["body"]
     subs = []  # (severity, короткое описание, цитата для подсветки)
 
     yo = list(YO_WORDS.finditer(body))
     if yo:
         words = sorted({m.group(0).lower() for m in yo})
-        subs.append(("yellow", f"буква «ё»: {', '.join(f'«{w}»' for w in words)} (2.7)", frag(body, yo[0])))
+        for word in words:
+            subs.append(("yellow", f"проверьте букву «ё»: «{word}» (2.7)", frag(body, yo[0])))
     quotes = list(re.finditer(r'"[^"\n]+"', body))
     if quotes:
-        subs.append(("red", f"компьютерные кавычки вместо «ёлочек» ({len(quotes)} шт.) (2.8)", frag(body, quotes[0])))
-    dashes = list(re.finditer(r"\w\s-\s\w", body))
+        for m in quotes:
+            subs.append(("yellow", "компьютерные кавычки вместо «ёлочек» (2.8)", frag(body, m)))
+    # Только пробелы на той же строке: иначе совпадёт markdown-маркер "- "
+    # следующего пункта списка.
+    dashes = list(re.finditer(r"\w[ \t]-[ \t]\w", body))
     if dashes:
-        subs.append(("red", f"дефис вместо тире ({len(dashes)} шт.) (2.10)", frag(body, dashes[0])))
+        for m in dashes:
+            subs.append(("yellow", "дефис вместо тире (2.10)", frag(body, m)))
     nums = list(re.finditer(r"\b\d{5,}\b", body))
     if nums:
         shown = ", ".join(m.group(0) for m in nums[:3])
-        subs.append(("yellow", f"числа без разбивки на разряды: {shown} (2.11)", frag(body, nums[0])))
+        for m in nums:
+            subs.append(("yellow", f"число без разбивки на разряды: {m.group(0)} (2.11)", frag(body, m)))
     avito = list(re.finditer(r"\bAvito\b(?!\s+Life)", body))
     if avito:
-        subs.append(("red", "«Avito» латиницей — по-русски «Авито» (2.12)", frag(body, avito[0])))
+        for m in avito:
+            subs.append(("red", "«Avito» латиницей — по-русски «Авито» (2.12)", frag(body, m)))
     hyph = list(re.finditer(r"\b(IT|HR|UX|DS|ML)\s+(сфер|направлени|инструмент|команд|специалист|систем|решени)\w*", body))
     if hyph:
-        m = hyph[0]
-        subs.append(("red", f"нужен дефис: «{m.group(0)}» → «{m.group(1)}-{m.group(2)}…» (2.6)", frag(body, m)))
+        for m in hyph:
+            subs.append(("yellow", f"нужен дефис: «{m.group(0)}» → «{m.group(1)}-{m.group(2)}…» (2.6)", frag(body, m)))
     years = list(re.finditer(r"\b\d+-?х\s+лет", body))
     if years:
-        w = years[0].group(0)
-        subs.append(("red", f"«{w}» → «{w.split()[0].rstrip('х-')} лет» (2.6)", frag(body, years[0])))
+        for m in years:
+            w = m.group(0)
+            subs.append(("yellow", f"«{w}» → «{w.split()[0].rstrip('х-')} лет» (2.6)", frag(body, m)))
     # «Вы» с заглавной только внутри предложения (в начале — законно)
     vy = list(re.finditer(r"[а-яё,)]\s+(Вы|Вас|Вам|Ваш\w*)\b", body))
     if vy:
-        subs.append(("yellow", f"«Вы/Вас/Вам» с заглавной внутри предложения ({len(vy)} шт.) (2.9)", frag(body, vy[0])))
+        for m in vy:
+            subs.append(("yellow", "«Вы/Вас/Вам» с заглавной внутри предложения (2.9)", frag(body, m)))
     brackets = list(re.finditer(r"\([^)]{2,}\)", body))
     if brackets:
-        subs.append(("yellow", f"скобки в тексте ({len(brackets)} шт., гайд советует избегать) (2.4 п. 4)",
-                     frag(body, brackets[0])))
-
-    if not subs:
-        return []
-    sev = "red" if any(s[0] == "red" for s in subs) else "yellow"
-    text = "типографика: " + "; ".join(s[1] for s in subs)
-    quote = next((s[2] for s in subs if s[0] == "red"), subs[0][2])
-    return [(sev, text, quote)]
+        for m in brackets:
+            subs.append(("yellow", "скобки в тексте: гайд советует избегать (2.4 п. 4)", frag(body, m)))
+    return subs
 
 
 def check_balance(vac):
@@ -251,6 +253,88 @@ def check_balance(vac):
     if n_req and n_ben and n_req > n_ben:
         out.append(("yellow", f"требований больше, чем преимуществ работы ({n_req} против {n_ben}) — это отпугивает кандидатов; добавьте пунктов в «{ben['heading']}» или сократите требования"))
     return out
+
+
+AI_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "issues": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "severity": {"type": "string", "enum": ["critical", "noncritical"]},
+                    "category": {"type": "string", "enum": ["structure", "requirements", "benefits", "clarity"]},
+                    "message": {"type": "string"},
+                    "evidence": {"type": "string"},
+                },
+                "required": ["severity", "category", "message", "evidence"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["issues"],
+    "additionalProperties": False,
+}
+
+
+def check_meaning(vac: dict, enabled: bool) -> list[tuple]:
+    """Проверка смыслового наполнения вакансии через Structured Outputs.
+
+    Правила из гайда передаются модели вместе с текстом. Модель сообщает только
+    смысловые отклонения, не дублируя типографику и детерминированные проверки.
+    """
+    if not enabled:
+        return []
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("Для проверки смыслов задайте OPENAI_API_KEY или запустите с --no-ai")
+    instructions = """Ты редактор описаний вакансий Авито. Проверь только смысловое
+наполнение, а не орфографию или пунктуацию. Гайд требует: обязанности должны отвечать
+на вопрос «что делать» и быть конкретными; обязательные требования должны быть ясными
+и проверяемыми; преимущества должны объяснять пользу кандидату; для Product & Tech
+важны примеры будущих задач, решений, метрик или стейкхолдеров. Не дублируй отсутствие
+заголовков и фиксированных бенефитов: это проверяет код. Верни максимум 6 уникальных
+отклонений с короткой цитатой из текста. Критичной считай только ситуацию, когда
+содержимое обязательного блока не даёт кандидату понять обязанности или требования;
+все остальные замечания — некритичные."""
+    payload = {
+        "model": os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
+        "store": False,
+        "input": [
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": json.dumps({
+                "title": vac["meta"].get("title", ""),
+                "direction": vac["meta"].get("направление", ""),
+                "vacancy_text": vac["body"],
+            }, ensure_ascii=False)},
+        ],
+        "text": {"format": {"type": "json_schema", "name": "vacancy_review",
+                 "strict": True, "schema": AI_SCHEMA}},
+    }
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+        parsed = json.loads(raw["output_text"])
+    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError) as exc:
+        raise RuntimeError(f"ИИ-проверка не выполнилась: {exc}") from exc
+    result = []
+    seen = set()
+    for issue in parsed.get("issues", []):
+        key = (issue["category"], issue["message"], issue["evidence"])
+        if key in seen:
+            continue
+        seen.add(key)
+        severity = "red" if issue["severity"] == "critical" else "yellow"
+        quote = issue["evidence"].strip()
+        result.append((severity, f"ИИ: {issue['message']}", quote or None))
+    return result
 
 
 # ---------- утилиты ----------
@@ -298,7 +382,7 @@ CRITERIA = [
 ]
 
 
-def review(vac: dict) -> dict:
+def review(vac: dict, ai_enabled: bool) -> dict:
     result = {}
     for key, label, fn in CRITERIA:
         findings = fn(vac)
@@ -314,6 +398,12 @@ def review(vac: dict) -> dict:
                 c["quote"] = f[2]
             comments.append(c)
         result[key] = {"status": status, "comments": comments}
+    meaning = check_meaning(vac, ai_enabled)
+    meaning_status = "red" if any(f[0] == "red" for f in meaning) else "yellow" if meaning else "green"
+    result["meaning"] = {"status": meaning_status, "comments": [
+        {"severity": f[0], "text": f[1], **({"quote": f[2]} if len(f) > 2 and f[2] else {})}
+        for f in meaning
+    ]}
     return result
 
 
@@ -321,6 +411,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("-d", "--dir", default="vacancies", help="папка с md-файлами вакансий")
     parser.add_argument("-o", "--out", default="report.json", help="куда писать отчёт")
+    parser.add_argument("--no-ai", action="store_true", help="не запускать смысловую проверку через OpenAI API")
     args = parser.parse_args()
 
     files = sorted(pathlib.Path(args.dir).glob("*.md"))
@@ -340,7 +431,7 @@ def main() -> int:
     rows = []
     for path in files:
         vac = parse_md(path)
-        res = review(vac)
+        res = review(vac, ai_enabled=not args.no_ai)
         rows.append({
             "file": vac["file"],
             "closed": vac["file"] in closed,
@@ -355,7 +446,9 @@ def main() -> int:
 
     report = {
         "generated_at": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
-        "criteria": [{"key": k, "label": l} for k, l, _ in CRITERIA],
+        "refresh_schedule": "Ежедневно в 09:00 МСК",
+        "ai_enabled": not args.no_ai,
+        "criteria": [{"key": k, "label": l} for k, l, _ in CRITERIA] + [{"key": "meaning", "label": "Смысл и наполнение (ИИ)"}],
         "vacancies": rows,
     }
     pathlib.Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
