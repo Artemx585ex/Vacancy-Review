@@ -19,12 +19,9 @@ jobs:
           python-version: "3.12"
 
       - name: Download vacancies and build report
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: gpt-5-mini
         run: |
           python fetch_vacancy.py --all --force
-          python check_vacancy.py
+          python check_vacancy.py --no-ai
           python build_site.py
 
       - name: Publish to Cloudflare
@@ -33,4 +30,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --assets=site --name=old-flower-c5e6 --compatibility-date=2026-07-30
-
