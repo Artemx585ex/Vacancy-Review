@@ -333,11 +333,11 @@ DATA.vacancies.forEach(v => {
 // кнопка «Обновить» работает только через локальный serve.py — на файле,
 // открытом двойным кликом, и на опубликованной ссылке бэкенда нет
 const SERVED = ['localhost', '127.0.0.1'].includes(location.hostname);
-document.getElementById('updline').innerHTML =
-  (DATA.refresh_schedule ? `<b>${DATA.refresh_schedule}</b> · ` : '') +
-  (DATA.generated_at ? `последнее обновление: <b>${DATA.generated_at}</b> · ` : '') +
-  (SERVED ? 'обновить можно кнопкой «⟳ Обновить данные» в правом верхнем углу'
-          : 'данные обновляются при каждом запуске «Запустить.command» (update.sh)');
+const updateInfo = [];
+if (DATA.refresh_schedule) updateInfo.push(`<b>${DATA.refresh_schedule}</b>`);
+if (DATA.generated_at) updateInfo.push(`последнее обновление: <b>${DATA.generated_at}</b>`);
+if (SERVED) updateInfo.push('обновить можно кнопкой «⟳ Обновить данные» в правом верхнем углу');
+document.getElementById('updline').innerHTML = updateInfo.join(' · ');
 
 const updBtn = document.getElementById('updBtn');
 const updDlg = document.getElementById('updDlg');
