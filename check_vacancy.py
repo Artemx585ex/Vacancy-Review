@@ -21,6 +21,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -277,6 +278,10 @@ AI_SCHEMA = {
     "additionalProperties": False,
 }
 
+# Вакансий много, поэтому не отправляем запросы к API залпом. Интервал можно
+# увеличить через OPENAI_MIN_INTERVAL_SECONDS в GitHub Actions.
+LAST_AI_REQUEST = 0.0
+
 
 def check_meaning(vac: dict, enabled: bool) -> list[tuple]:
     """Проверка смыслового наполнения вакансии через Structured Outputs.
@@ -312,18 +317,38 @@ def check_meaning(vac: dict, enabled: bool) -> list[tuple]:
         "text": {"format": {"type": "json_schema", "name": "vacancy_review",
                  "strict": True, "schema": AI_SCHEMA}},
     }
-    request = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=90) as response:
-            raw = json.loads(response.read().decode("utf-8"))
-        parsed = json.loads(raw["output_text"])
-    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError) as exc:
-        raise RuntimeError(f"ИИ-проверка не выполнилась: {exc}") from exc
+    global LAST_AI_REQUEST
+    min_interval = float(os.environ.get("OPENAI_MIN_INTERVAL_SECONDS", "2"))
+    last_error = None
+    for attempt in range(6):
+        wait = min_interval - (time.monotonic() - LAST_AI_REQUEST)
+        if wait > 0:
+            time.sleep(wait)
+        request = urllib.request.Request(
+            "https://api.openai.com/v1/responses",
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                LAST_AI_REQUEST = time.monotonic()
+                raw = json.loads(response.read().decode("utf-8"))
+            parsed = json.loads(raw["output_text"])
+            break
+        except urllib.error.HTTPError as exc:
+            LAST_AI_REQUEST = time.monotonic()
+            last_error = exc
+            if exc.code != 429 or attempt == 5:
+                raise RuntimeError(f"ИИ-проверка не выполнилась: {exc}") from exc
+            retry_after = exc.headers.get("Retry-After")
+            delay = float(retry_after) if retry_after and retry_after.isdigit() else 5 * (attempt + 1)
+            print(f"ИИ: ограничение скорости, повтор через {delay:.0f} с…", file=sys.stderr)
+            time.sleep(delay)
+        except (urllib.error.URLError, KeyError, ValueError) as exc:
+            raise RuntimeError(f"ИИ-проверка не выполнилась: {exc}") from exc
+    else:
+        raise RuntimeError(f"ИИ-проверка не выполнилась: {last_error}")
     result = []
     seen = set()
     for issue in parsed.get("issues", []):
@@ -464,3 +489,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
