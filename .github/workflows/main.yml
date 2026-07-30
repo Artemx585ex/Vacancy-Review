@@ -1,9 +1,9 @@
 name: Update vacancy report
 
 on:
-  schedule:
-    - cron: "0 6 * * *"
   workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *" # 09:00 по Москве (UTC+3)
 
 permissions:
   contents: read
@@ -16,9 +16,12 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Download vacancies and build report
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-5-mini
         run: |
           python fetch_vacancy.py --all --force
           python check_vacancy.py
@@ -30,3 +33,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --assets=site --name=old-flower-c5e6 --compatibility-date=2026-07-30
+
