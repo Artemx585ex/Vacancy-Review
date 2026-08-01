@@ -277,6 +277,9 @@ BODY_CORE = """<div class="wrap">
       <option value="">Критические ошибки: все</option><option value="1">1+</option>
       <option value="2">2+</option><option value="3">3+</option><option value="5">5+</option>
     </select>
+    <select id="fCriticalCriterion" aria-label="Фильтр критических ошибок по критерию">
+      <option value="">Критические: все критерии</option>
+    </select>
     <label class="chk" id="fClosedLbl" hidden><input type="checkbox" id="fClosed"> <span>скрыть закрытые</span></label>
     <div class="spacer"></div>
     <div class="legend">
@@ -441,9 +444,13 @@ for (const [id, list] of [['fDir', dirs], ['fTeam', teams]]) {
   const sel = document.getElementById('fTier');
   TIERS.forEach(t => sel.append(new Option(`Тир ${t.n} — ${t.desc}`, t.n)));
 }
+{
+  const sel = document.getElementById('fCriticalCriterion');
+  DATA.criteria.forEach(c => sel.append(new Option(c.label, c.key)));
+}
 
 // состояние фильтров в URL-хеше
-const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fClosed'];
+const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fCriticalCriterion', 'fClosed'];
 function saveHash() {
   const p = new URLSearchParams();
   for (const id of FIELDS) {
@@ -565,11 +572,13 @@ function visible() {
   const d = document.getElementById('fDir').value;
   const t = document.getElementById('fTeam').value;
   const criticalMin = +document.getElementById('fCritical').value || 0;
+  const criticalCriterion = document.getElementById('fCriticalCriterion').value;
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
     (!ti || v._tier === +ti) &&
     (!d || v.direction === d) && (!t || v.team === t) && (!criticalMin || v._reds >= criticalMin) &&
+    (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
     (!hc || !v.closed));
   rows.sort((a, b) => {
     let x, y;
@@ -588,6 +597,7 @@ function visible() {
 function resetFilters() {
   for (const id of ['q', 'fTier', 'fDir', 'fTeam']) document.getElementById(id).value = '';
   document.getElementById('fCritical').value = '';
+  document.getElementById('fCriticalCriterion').value = '';
   document.getElementById('fClosed').checked = false;
   render();
 }
@@ -722,7 +732,7 @@ function render() {
 }
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fClosed'].forEach(id =>
+['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 document.getElementById('csvBtn').onclick = exportCsv;
 document.getElementById('xlsBtn').onclick = exportProblems;
@@ -770,3 +780,4 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
