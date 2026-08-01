@@ -9,10 +9,8 @@
 """
 
 import argparse
-import html
 import json
 import pathlib
-import urllib.parse
 
 # Страница собрана из двух кусков без внешнего <html>-каркаса: из них строится
 # и локальный site/index.html, и версия для публикации по ссылке (--artifact),
@@ -338,13 +336,6 @@ DATA.vacancies.forEach(v => {
   v._reds = countSev(v, 'red');       // критические ошибки (красные замечания)
   v._yellows = countSev(v, 'yellow');
   v._tier = tierOf(v);
-  const reviewTargets = {};
-  Object.entries(v.criteria).forEach(([key, criterion]) =>
-    (criterion.comments ?? []).forEach((comment, index) => {
-      comment._reviewId = `${key}-${index}`;
-      comment._reviewTarget = comment.quote
-        ? (reviewTargets[comment.quote] ??= comment._reviewId) : comment._reviewId;
-    }));
 });
 
 // ---------- обновление данных ----------
@@ -658,8 +649,6 @@ function exportProblems() {
 // ссылка на вакансию с подсветкой цитаты (scroll-to-text fragment)
 const highlightUrl = (v, x) =>
   `${v.url}#:~:text=${encodeURIComponent(x.quote).replaceAll('-', '%2D')}`;
-const reviewUrl = (v, x) =>
-  `review/${encodeURIComponent(v.file)}.html#${x.quote ? 'source-' : 'issue-'}${x._reviewTarget}`;
 
 function render() {
   header();
@@ -728,10 +717,8 @@ function render() {
           `${yellowCount ? `<span class="badge warn">! ${yellowCount} некритичных</span>` : ''}`;
         const lis = cr.comments.map(x => {
           const missing = /^нет (?:обязательного )?блока/i.test(x.text);
-          const jump = ` <a class="jump" href="${reviewUrl(v, x)}" target="_blank"
-            rel="noopener" title="Открыть копию вакансии с гарантированной подсветкой">показать в копии ↗</a>` +
-            ` <a class="jump" href="${x.quote ? highlightUrl(v, x) : v.url}" target="_blank"
-            rel="noopener" title="Открыть оригинал на career.avito.com">оригинал ↗</a>`;
+          const jump = ` <a class="jump" href="${x.quote ? highlightUrl(v, x) : v.url}" target="_blank"
+            rel="noopener" title="Открыть вакансию на career.avito.com">${x.quote ? 'показать место ↗' : 'открыть вакансию ↗'}</a>`;
           const severityLabel = x.severity === 'red'
             ? '<span class="badge crit">Критичная</span>'
             : '<span class="badge warn">Некритичная</span>';
@@ -781,74 +768,6 @@ TEMPLATE = SHELL_TOP + HEAD_CORE + "</head>\n<body>\n" + BODY_CORE + "</body>\n<
 ARTIFACT_TEMPLATE = HEAD_CORE + BODY_CORE
 
 
-def vacancy_body(path: pathlib.Path) -> str:
-    """Возвращает текст вакансии без front matter для проверочной копии."""
-    raw = path.read_text(encoding="utf-8")
-    if raw.startswith("---\n"):
-        end = raw.find("\n---\n", 4)
-        if end != -1:
-            raw = raw[end + 5:]
-    return raw.strip()
-
-
-def build_review_pages(data: dict, out_dir: pathlib.Path) -> int:
-    """Создаёт локальные копии вакансий, где подсветка не зависит от чужого сайта."""
-    vacancies_dir = pathlib.Path("vacancies")
-    if not vacancies_dir.exists():
-        return 0
-    review_dir = out_dir / "review"
-    review_dir.mkdir(parents=True, exist_ok=True)
-    built = 0
-    for vacancy in data["vacancies"]:
-        source = vacancies_dir / vacancy["file"]
-        if not source.exists():
-            continue
-        comments = []
-        for criterion_key, criterion in vacancy["criteria"].items():
-            for index, comment in enumerate(criterion.get("comments", [])):
-                comments.append({**comment, "id": f"{criterion_key}-{index}"})
-
-        body = html.escape(vacancy_body(source))
-        # Каждое первое совпадение получает якорь; комментарии без цитаты остаются
-        # в списке как явное подтверждение отсутствующего блока.
-        seen_quotes = set()
-        for comment in comments:
-            quote = comment.get("quote")
-            if not quote or quote in seen_quotes:
-                continue
-            seen_quotes.add(quote)
-            escaped_quote = html.escape(quote)
-            marker = (f'<mark id="source-{comment["id"]}">{escaped_quote}</mark>')
-            if escaped_quote in body:
-                body = body.replace(escaped_quote, marker, 1)
-
-        items = "".join(
-            f'<li id="issue-{c["id"]}" class="{c["severity"]}"><b>'
-            f'{"Критичная" if c["severity"] == "red" else "Некритичная"}</b> · '
-            f'{html.escape(c["text"])}</li>'
-            for c in comments
-        ) or "<li>Замечаний нет.</li>"
-        original = html.escape(vacancy.get("url", ""), quote=True)
-        title = html.escape(vacancy.get("title", "Вакансия"))
-        page = f'''<!doctype html><html lang="ru"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} — проверочная копия</title>
-<style>
-body{{margin:0;background:#f7f5f2;color:#21201d;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
-main{{max-width:900px;margin:auto;padding:28px 22px 60px}} h1{{line-height:1.2}} a{{color:#0e7cf4}}
-.note{{color:#6e6b64}} .issues{{background:#fff;border:1px solid #eae7e1;border-radius:14px;padding:12px 24px}}
-li{{margin:10px 0}} li.red b{{color:#c92f2f}} li.yellow b{{color:#8a6206}} li:target{{outline:3px solid #fbe9e9;border-radius:6px}}
-pre{{white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid #eae7e1;border-radius:14px;padding:20px;font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}}
-mark{{background:#f7d6ff;color:inherit;border-radius:3px;padding:1px 2px;scroll-margin-top:24px}} mark:target{{outline:3px solid #0e7cf4}}
-</style><main><p><a href="../index.html">← К отчёту</a> · <a href="{original}" target="_blank" rel="noopener">Открыть оригинал ↗</a></p>
-<h1>{title}</h1><p class="note">Проверочная копия: выделение работает независимо от сайта career.avito.com.</p>
-<h2>Замечания</h2><ul class="issues">{items}</ul><h2>Текст вакансии</h2><pre>{body}</pre></main></html>'''
-        filename = urllib.parse.quote(vacancy["file"], safe="") + ".html"
-        (review_dir / filename).write_text(page, encoding="utf-8")
-        built += 1
-    return built
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("-r", "--report", default="report.json")
@@ -862,8 +781,7 @@ def main() -> int:
     out = pathlib.Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(TEMPLATE.replace("__DATA__", payload), encoding="utf-8")
-    review_count = build_review_pages(data, out.parent)
-    print(f"Сайт собран: {out} (вакансий: {len(data['vacancies'])}; проверочных копий: {review_count})")
+    print(f"Сайт собран: {out} (вакансий: {len(data['vacancies'])})")
     if args.artifact:
         ap = pathlib.Path(args.artifact)
         ap.parent.mkdir(parents=True, exist_ok=True)
@@ -875,4 +793,3 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
-
