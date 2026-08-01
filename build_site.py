@@ -152,13 +152,11 @@ dialog.upddlg { width: min(680px, 92vw); }
 
 .tablebox { overflow: visible; background: var(--card); border: 1px solid var(--line);
   border-radius: 20px; box-shadow: var(--shadow); }
-  border-radius: 20px; box-shadow: var(--shadow); padding-top: 18px; }
 table { border-collapse: collapse; width: 100%; }
 th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: left;
   white-space: nowrap; }
 tbody tr:last-child td { border-bottom: none; }
 th { position: sticky; top: 0; z-index: 2; background: var(--card); font-weight: 650;
-th { position: sticky; top: 18px; z-index: 2; background: var(--card); font-weight: 650;
   font-size: 11.5px; letter-spacing: .02em; color: var(--ink-2);
   cursor: pointer; user-select: none; border-bottom: 1px solid var(--line);
   vertical-align: bottom; box-shadow: 0 1px 0 var(--line); }
@@ -166,8 +164,10 @@ th:hover { color: var(--ink); }
 th.crit-col, td.crit-col { text-align: center; }
 td.crit-col { padding: 8px 4px; }
 th.crit-col { padding: 10px 4px 8px; }
+th.crit-col { height: 270px; padding: 10px 4px 8px; }
 th.crit-col .vh { writing-mode: vertical-rl; transform: rotate(180deg);
   max-height: 160px; display: inline-block; }
+  display: inline-block; }
 th .arrow { font-size: 9px; color: var(--accent); }
 td.tier-col, th.tier-col { text-align: center; }
 .tierpill { display: inline-block; min-width: 34px; padding: 2px 9px; border-radius: 20px;
