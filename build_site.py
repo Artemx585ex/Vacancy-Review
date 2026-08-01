@@ -210,6 +210,7 @@ tr.details td { white-space: normal; background: var(--card-2); padding: 14px; }
 .dcard li { margin-bottom: 6px; color: var(--ink-2); }
 .dcard li.red::marker { color: var(--crit); }
 .dcard li.yellow::marker { color: var(--warn); }
+.dcard li .badge { margin-right: 5px; vertical-align: 1px; }
 .jump { display: inline-block; margin-left: 6px; color: var(--accent); font-size: 11.5px;
   font-weight: 650; text-decoration: none; white-space: nowrap; border: 1px solid var(--line);
   border-radius: 20px; padding: 0 8px; }
@@ -705,14 +706,21 @@ function render() {
       const cards = DATA.criteria.map(c => {
         const cr = v.criteria[c.key];
         if (!cr || !cr.comments.length) return '';
+        const redCount = cr.comments.filter(x => x.severity === 'red').length;
+        const yellowCount = cr.comments.filter(x => x.severity === 'yellow').length;
+        const severityBadges = `${redCount ? `<span class="badge crit">✕ ${redCount} критичных</span>` : ''}` +
+          `${yellowCount ? `<span class="badge warn">! ${yellowCount} некритичных</span>` : ''}`;
         const lis = cr.comments.map(x => {
           const jump = x.quote ? ` <a class="jump" href="${highlightUrl(v, x)}" target="_blank"
             rel="noopener" title="Открыть вакансию на сайте и подсветить это место">показать ↗</a>` :
             ` <a class="jump" href="${v.url}" target="_blank" rel="noopener"
             title="Открыть вакансию на career.avito.com">открыть вакансию ↗</a>`;
-          return `<li class="${x.severity}">${esc(x.text)}${jump}</li>`;
+          const severityLabel = x.severity === 'red'
+            ? '<span class="badge crit">Критичная</span>'
+            : '<span class="badge warn">Некритичная</span>';
+          return `<li class="${x.severity}">${severityLabel}${esc(x.text)}${jump}</li>`;
         }).join('');
-        return `<div class="dcard"><h4><span class="chip ${cr.status}">${ICONS[cr.status]}</span>${c.label}</h4><ul>${lis}</ul></div>`;
+        return `<div class="dcard"><h4><span class="chip ${cr.status}">${ICONS[cr.status]}</span>${c.label}<span class="badges">${severityBadges}</span></h4><ul>${lis}</ul></div>`;
       }).join('') || '<div class="dcard empty"><span class="chip green">✓</span> Замечаний нет</div>';
       const meta = [
         v.closed ? '<span class="closednote">вакансии уже нет на сайте</span>' : '',
@@ -780,4 +788,3 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
-
