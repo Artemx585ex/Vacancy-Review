@@ -134,12 +134,23 @@ def check_discrimination(vac):
 
 def check_structure(vac):
     out = []
-    if not find_section(vac, "задачи вас ждут", "будущих задач", "предстоит заниматься"):
-        out.append(("red", "нет блока задач («Какие задачи вас ждут» или «Примеры будущих задач»)"))
-    if not find_section(vac, "ждем, что вы", "ждём, что вы", "требован"):
-        out.append(("red", "нет блока требований («Мы ждём, что вы»)"))
-    if not find_section(vac, "работа у нас", "условия"):
-        out.append(("red", "нет блока условий («Работа у нас — это»)"))
+    sections = vac["sections"]
+    tasks = find_section(vac, "задачи вас ждут", "будущих задач", "предстоит заниматься")
+    requirements = find_section(vac, "ждем, что вы", "ждём, что вы", "требован")
+    benefits = find_section(vac, "работа у нас", "условия")
+    if not tasks:
+        # Несуществующий блок подсветить нельзя: ведём к ближайшему разделу.
+        near = requirements or benefits or (sections[0] if sections else None)
+        out.append(("red", "нет блока задач («Какие задачи вас ждут» или «Примеры будущих задач»)",
+                    near["heading"] if near else None))
+    if not requirements:
+        near = tasks or benefits or (sections[0] if sections else None)
+        out.append(("red", "нет блока требований («Мы ждём, что вы»)",
+                    near["heading"] if near else None))
+    if not benefits:
+        near = requirements or tasks or (sections[-1] if sections else None)
+        out.append(("red", "нет блока условий («Работа у нас — это»)",
+                    near["heading"] if near else None))
     return out
 
 
@@ -174,8 +185,11 @@ def check_requirements_legal(vac):
 
 def check_benefits(vac):
     body = vac["body"]
+    benefits = find_section(vac, "работа у нас", "условия")
+    # Ведём к разделу, куда следует добавить недостающий пункт.
+    quote = benefits["heading"] if benefits else None
     missing = [name for name, pat in BENEFIT_BLOCKS if not pat.search(body)]
-    return [("red", f"нет обязательного блока условий: {name}") for name in missing]
+    return [("red", f"нет обязательного блока условий: {name}", quote) for name in missing]
 
 
 def check_cliches(vac):
@@ -489,4 +503,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
