@@ -122,10 +122,10 @@ dialog.upddlg { width: min(680px, 92vw); }
 .tierbar .lbl { margin-top: 6px; font-size: 12px; color: var(--ink-2); font-weight: 650;
   border-top: 1px solid var(--line); padding: 5px 10px 0; }
 .tierbar.active .lbl { color: var(--ink); }
-.hbars { display: grid; grid-template-columns: max-content 1fr; gap: 8px 10px;
+.hbars { display: grid; grid-template-columns: minmax(180px, 45%) minmax(0, 1fr); gap: 8px 10px;
   align-items: center; }
-.hbars .hlbl { font-size: 12px; color: var(--ink-2); text-align: right; max-width: 180px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbars .hlbl { font-size: 12px; color: var(--ink-2); text-align: right;
+  white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
 .hbars .htrack { display: flex; align-items: center; gap: 8px; }
 .hbars .hbar { height: 12px; border-radius: 0 4px 4px 0; background: var(--crit);
   min-width: 2px; transform-origin: left; animation: grow-x .5s ease-out; }
