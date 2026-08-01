@@ -150,7 +150,7 @@ dialog.upddlg { width: min(680px, 92vw); }
   cursor: pointer; }
 .tbtn:hover { color: var(--ink); box-shadow: var(--shadow); }
 
-.tablebox { overflow-x: auto; background: var(--card); border: 1px solid var(--line);
+.tablebox { overflow: visible; background: var(--card); border: 1px solid var(--line);
   border-radius: 20px; box-shadow: var(--shadow); }
 table { border-collapse: collapse; width: 100%; }
 th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: left;
@@ -159,7 +159,7 @@ tbody tr:last-child td { border-bottom: none; }
 th { position: sticky; top: 0; z-index: 2; background: var(--card); font-weight: 650;
   font-size: 11.5px; letter-spacing: .02em; color: var(--ink-2);
   cursor: pointer; user-select: none; border-bottom: 1px solid var(--line);
-  vertical-align: bottom; }
+  vertical-align: bottom; box-shadow: 0 1px 0 var(--line); }
 th:hover { color: var(--ink); }
 th.crit-col, td.crit-col { text-align: center; }
 td.crit-col { padding: 8px 4px; }
@@ -182,6 +182,7 @@ td.vac .meta { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
 .badge { font-size: 10.5px; font-weight: 700; border-radius: 20px; padding: 1px 8px; }
 .badge.crit { background: var(--crit-bg); color: var(--crit); }
 .badge.warn { background: var(--warn-bg); color: var(--warn); }
+.badge.missing { background: var(--crit-bg); color: var(--crit); }
 .badge.closed { background: var(--line); color: var(--ink-2); }
 tr.row.closed td.vac a { color: var(--ink-2); }
 .closednote { color: var(--crit); font-weight: 650; }
@@ -224,6 +225,10 @@ tr.details td { white-space: normal; background: var(--card-2); padding: 14px; }
 footer { color: var(--ink-2); font-size: 12px; margin-top: 22px; max-width: 860px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+@media (max-width: 760px) {
+  /* На узком экране важнее горизонтальная прокрутка; закрепление работает на desktop. */
+  .tablebox { overflow-x: auto; }
 }
 </style>
 """
@@ -711,14 +716,16 @@ function render() {
         const severityBadges = `${redCount ? `<span class="badge crit">✕ ${redCount} критичных</span>` : ''}` +
           `${yellowCount ? `<span class="badge warn">! ${yellowCount} некритичных</span>` : ''}`;
         const lis = cr.comments.map(x => {
+          const missing = /^нет (?:обязательного )?блока/i.test(x.text);
           const jump = x.quote ? ` <a class="jump" href="${highlightUrl(v, x)}" target="_blank"
-            rel="noopener" title="Открыть вакансию на сайте и подсветить это место">показать ↗</a>` :
+            rel="noopener" title="Открыть раздел, где нужно добавить блок">показать место ↗</a>` :
             ` <a class="jump" href="${v.url}" target="_blank" rel="noopener"
             title="Открыть вакансию на career.avito.com">открыть вакансию ↗</a>`;
           const severityLabel = x.severity === 'red'
             ? '<span class="badge crit">Критичная</span>'
             : '<span class="badge warn">Некритичная</span>';
-          return `<li class="${x.severity}">${severityLabel}${esc(x.text)}${jump}</li>`;
+          const missingLabel = missing ? '<span class="badge missing">Блок отсутствует</span>' : '';
+          return `<li class="${x.severity}">${severityLabel}${missingLabel}${esc(x.text)}${jump}</li>`;
         }).join('');
         return `<div class="dcard"><h4><span class="chip ${cr.status}">${ICONS[cr.status]}</span>${c.label}<span class="badges">${severityBadges}</span></h4><ul>${lis}</ul></div>`;
       }).join('') || '<div class="dcard empty"><span class="chip green">✓</span> Замечаний нет</div>';
