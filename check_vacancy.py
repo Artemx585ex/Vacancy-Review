@@ -212,9 +212,16 @@ def check_typography(vac):
 
     yo = list(YO_WORDS.finditer(body))
     if yo:
-        words = sorted({m.group(0).lower() for m in yo})
-        for word in words:
-            subs.append(("yellow", f"проверьте букву «ё»: «{word}» (2.7)", frag(body, yo[0])))
+        # Для этой проверки цитатой оставляем ровно проблемное слово: так ссылка
+        # с text fragment подсветит «ждем», а не произвольный фрагмент рядом.
+        seen_words = set()
+        for match in yo:
+            word = match.group(0)
+            key = word.lower()
+            if key in seen_words:
+                continue
+            seen_words.add(key)
+            subs.append(("yellow", f"проверьте букву «ё»: «{key}» (2.7)", word))
     quotes = list(re.finditer(r'"[^"\n]+"', body))
     if quotes:
         for m in quotes:
