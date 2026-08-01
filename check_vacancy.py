@@ -102,6 +102,14 @@ BENEFIT_BLOCKS = [
      re.compile(r"компенсаци\w+ питани", re.I)),
 ]
 
+ADDITIONAL_REQUIREMENT = re.compile(
+    r"\b(?:желательно|будет\s+(?:здорово|плюсом)|плюсом|преимуществом)\b", re.I
+)
+PRODUCT_TECH_DIRECTIONS = {
+    "управление продуктом", "разработка", "data science", "дизайн",
+    "информационная безопасность",
+}
+
 def check_title(vac):
     out = []
     title = vac["meta"].get("title", "")
@@ -151,6 +159,30 @@ def check_structure(vac):
         near = requirements or tasks or (sections[-1] if sections else None)
         out.append(("red", "нет блока условий («Работа у нас — это»)",
                     near["heading"] if near else None))
+
+    # По таблице «желательно» и похожие дополнительные требования должны быть
+    # вынесены из обязательного блока в отдельный раздел.
+    if requirements:
+        for item in requirements["items"] + requirements["paragraphs"]:
+            match = ADDITIONAL_REQUIREMENT.search(item)
+            if match:
+                out.append((
+                    "red",
+                    f"дополнительное требование в обязательном блоке: «{shorten(item)}» — вынесите его в «Будет здорово, если вы»",
+                    item,
+                ))
+
+    # Для Product & Tech нужен именно блок с примерами будущих задач, а не
+    # только общий перечень обязанностей.
+    direction = vac["meta"].get("направление", "").lower()
+    future_examples = find_section(vac, "примеры будущих задач", "будущих задач")
+    if direction in PRODUCT_TECH_DIRECTIONS and not future_examples:
+        near = tasks or requirements or benefits or (sections[0] if sections else None)
+        out.append((
+            "yellow",
+            "для Product & Tech нет блока с примерами будущих задач",
+            near["heading"] if near else None,
+        ))
     return out
 
 
@@ -263,18 +295,43 @@ def check_typography(vac):
 
 
 def check_balance(vac):
-    """Требований не должно быть больше, чем преимуществ работы: это отпугивает кандидатов."""
+    """Проверяет баланс объёма требований и преимуществ по порогу из таблицы."""
     out = []
     ben = find_section(vac, "работа у нас", "условия")
     req = find_section(vac, "ждем, что вы", "ждём, что вы", "требован")
     nice = find_section(vac, "будет здорово")
-    n_ben = len(ben["items"]) if ben else 0
-    n_req = (len(req["items"]) if req else 0) + (len(nice["items"]) if nice else 0)
-    if ben and 0 < n_ben < 5:
-        out.append(("yellow", f"в блоке «{ben['heading']}» только {n_ben} пункт(а) — похоже, не хватает части условий и преимуществ работы"))
-    if n_req and n_ben and n_req > n_ben:
-        out.append(("yellow", f"требований больше, чем преимуществ работы ({n_req} против {n_ben}) — это отпугивает кандидатов; добавьте пунктов в «{ben['heading']}» или сократите требования"))
+    req_words = section_word_count(req) + section_word_count(nice)
+    ben_words = section_word_count(ben)
+    if req_words and ben_words:
+        difference = abs(req_words - ben_words) / min(req_words, ben_words)
+        if difference > 0.30:
+            larger = "требований" if req_words > ben_words else "преимуществ"
+            percent = round(difference * 100)
+            out.append((
+                "yellow",
+                f"дисбаланс объёма требований и преимуществ: {larger} больше на {percent}% (порог — 30%)",
+                (req or ben)["heading"],
+            ))
     return out
+
+
+# В отчёте показываем четыре укрупнённых критерия из таблицы. Внутренние
+# функции выше остаются точечными: благодаря этому комментарий всё так же
+# объясняет конкретную ошибку и ведёт к месту в вакансии.
+def check_law_compliance(vac):
+    return check_discrimination(vac) + check_requirements_legal(vac)
+
+
+def check_benefits_and_advantages(vac):
+    return check_benefits(vac) + check_balance(vac)
+
+
+def check_orthography_typography(vac):
+    return check_typography(vac) + check_cliches(vac)
+
+
+def check_structure_and_format(vac):
+    return check_structure(vac) + check_list_format(vac) + check_title(vac)
 
 
 AI_SCHEMA = {
@@ -394,6 +451,14 @@ def examples(items, n=2, limit=60):
     return shown + (f" и ещё {len(items) - n}" if len(items) > n else "")
 
 
+def section_word_count(section: dict | None) -> int:
+    """Количество слов в содержимом раздела, без его заголовка."""
+    if not section:
+        return 0
+    text = " ".join(section["items"] + section["paragraphs"])
+    return len(re.findall(r"[\wа-яё]+", text, re.I))
+
+
 def context(body, m, radius=35):
     a, b = max(0, m.start() - radius), min(len(body), m.end() + radius)
     return re.sub(r"\s+", " ", body[a:b]).strip()
@@ -416,15 +481,10 @@ def frag(body, m, min_len=12):
 
 
 CRITERIA = [
-    ("title", "Название", check_title),
-    ("discrimination", "Дискриминация", check_discrimination),
-    ("structure", "Структура блоков", check_structure),
-    ("benefits", "5 блоков условий", check_benefits),
-    ("requirements", "Юр. отказные требования", check_requirements_legal),
-    ("lists", "Оформление списков", check_list_format),
-    ("cliches", "Клише и сленг", check_cliches),
-    ("typography", "Типографика", check_typography),
-    ("balance", "Требования vs преимущества", check_balance),
+    ("law", "Соблюдение законодательства", check_law_compliance),
+    ("benefits", "Бенефиты и преимущества работы", check_benefits_and_advantages),
+    ("typography", "Орфография/типографика", check_orthography_typography),
+    ("structure", "Нарушена структура", check_structure_and_format),
 ]
 
 
@@ -445,11 +505,17 @@ def review(vac: dict, ai_enabled: bool) -> dict:
             comments.append(c)
         result[key] = {"status": status, "comments": comments}
     meaning = check_meaning(vac, ai_enabled)
-    meaning_status = "red" if any(f[0] == "red" for f in meaning) else "yellow" if meaning else "green"
-    result["meaning"] = {"status": meaning_status, "comments": [
-        {"severity": f[0], "text": f[1], **({"quote": f[2]} if len(f) > 2 and f[2] else {})}
-        for f in meaning
-    ]}
+    if meaning:
+        # ИИ-сигналы относятся к содержанию и структуре, отдельный столбец для
+        # них не нужен: в таблице предусмотрены только четыре критерия.
+        result["structure"]["comments"].extend(
+            {"severity": f[0], "text": f[1], **({"quote": f[2]} if len(f) > 2 and f[2] else {})}
+            for f in meaning
+        )
+        if any(f[0] == "red" for f in meaning):
+            result["structure"]["status"] = "red"
+        elif result["structure"]["status"] == "green":
+            result["structure"]["status"] = "yellow"
     return result
 
 
@@ -494,7 +560,7 @@ def main() -> int:
         "generated_at": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
         "refresh_schedule": "Ежедневно в 09:00 МСК",
         "ai_enabled": not args.no_ai,
-        "criteria": [{"key": k, "label": l} for k, l, _ in CRITERIA] + [{"key": "meaning", "label": "Смысл и наполнение (ИИ)"}],
+        "criteria": [{"key": k, "label": l} for k, l, _ in CRITERIA],
         "vacancies": rows,
     }
     pathlib.Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -506,6 +572,11 @@ def main() -> int:
           + (f"; закрытых (уже не на сайте): {n_closed}" if n_closed else ""))
     print(f"Отчёт: {args.out}")
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
 
 
 if __name__ == "__main__":
