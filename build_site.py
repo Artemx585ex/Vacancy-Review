@@ -71,6 +71,12 @@ dialog.tiers li .tierpill { margin-right: 8px; }
 dialog.tiers p { color: var(--ink-2); margin: 10px 0 0; }
 dialog.tiers .close { background: var(--accent); color: #fff; border: none; border-radius: 30px;
   padding: 9px 20px; font: inherit; font-weight: 700; cursor: pointer; margin-top: 16px; }
+.criteria-dlg { width: min(780px, 92vw); max-height: 80vh; overflow: auto; }
+.criteria-dlg .criteria-list { display: grid; gap: 10px; margin-top: 14px; }
+.criteria-dlg .criterion-def { border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+.criteria-dlg .criterion-def h4 { margin: 0 0 5px; font-size: 13px; }
+.criteria-dlg .criterion-def p { margin: 0; font-size: 12.5px; line-height: 1.45; }
+.criteria-dlg .badge { margin-right: 5px; }
 .whatis { background: none; border: none; padding: 0; font: inherit; font-size: 12px;
   color: var(--accent); cursor: pointer; text-decoration: underline; }
 dialog.upddlg { width: min(680px, 92vw); }
@@ -163,10 +169,8 @@ th { position: sticky; top: 0; z-index: 2; background: var(--card); font-weight:
 th:hover { color: var(--ink); }
 th.crit-col, td.crit-col { text-align: center; }
 td.crit-col { padding: 8px 4px; }
-th.crit-col { padding: 10px 4px 8px; }
-th.crit-col { height: 270px; padding: 10px 4px 8px; }
+th.crit-col { height: 330px; padding: 10px 4px 8px; }
 th.crit-col .vh { writing-mode: vertical-rl; transform: rotate(180deg);
-  max-height: 160px; display: inline-block; }
   display: inline-block; }
 th .arrow { font-size: 9px; color: var(--accent); }
 td.tier-col, th.tier-col { text-align: center; }
@@ -248,6 +252,7 @@ BODY_CORE = """<div class="wrap">
   <div class="head-btns">
     <button class="theme-btn" id="updBtn" type="button" hidden aria-haspopup="dialog">⟳ Обновить данные</button>
     <button class="theme-btn" id="tierBtn" type="button" aria-haspopup="dialog">ⓘ Что такое тиры</button>
+    <button class="theme-btn" id="criteriaBtn" type="button" aria-haspopup="dialog">ⓘ Критерии</button>
     <button class="theme-btn" id="themeBtn" type="button" aria-label="Переключить тему">◐ Тема</button>
   </div>
 </header>
@@ -270,6 +275,24 @@ BODY_CORE = """<div class="wrap">
   </ul>
   <p>Вакансии без ошибок выделяются отдельно и не относятся к тирам.</p>
   <button class="close" type="button" id="tierDlgClose">Понятно</button>
+</dialog>
+
+<dialog class="tiers criteria-dlg" id="criteriaDlg" aria-labelledby="criteriaDlgTitle">
+  <h3 id="criteriaDlgTitle">Что проверяет каждый критерий</h3>
+  <p>Красный — критичная ошибка, жёлтый — некритичная. Счётчик показывает число отдельных ошибок.</p>
+  <div class="criteria-list">
+    <div class="criterion-def"><h4>Название</h4><p><span class="badge warn">Некритичная</span>Логика и оформление названия: скобки, неуместная латиница и другие отклонения от гайда.</p></div>
+    <div class="criterion-def"><h4>Дискриминация</h4><p><span class="badge crit">Критичная</span>Требования по полу, возрасту, гражданству, семейному положению, религии и другим признакам, не связанным с работой.</p></div>
+    <div class="criterion-def"><h4>Структура блоков</h4><p><span class="badge crit">Критичная</span>Наличие обязательных разделов: задачи, требования и условия работы.</p></div>
+    <div class="criterion-def"><h4>5 блоков условий</h4><p><span class="badge crit">Критичная</span>Пять обязательных преимуществ: забота о здоровье, психологическая поддержка, спорт, скидки партнёров и компенсация питания.</p></div>
+    <div class="criterion-def"><h4>Юр. отказные требования</h4><p><span class="badge crit">Критичная</span>Личные качества в обязательных требованиях. <span class="badge warn">Некритичная</span>Неконкретные требования, по которым нельзя обоснованно отказать кандидату.</p></div>
+    <div class="criterion-def"><h4>Оформление списков</h4><p><span class="badge warn">Некритичная</span>Строчная буква в начале пунктов, точка с запятой между пунктами и точка в конце списка.</p></div>
+    <div class="criterion-def"><h4>Клише и сленг</h4><p><span class="badge warn">Некритичная</span>Канцелярит, штампы и разговорные формулировки вместо ясного описания.</p></div>
+    <div class="criterion-def"><h4>Типографика</h4><p><span class="badge crit">Критичная</span>«Avito» вместо «Авито». <span class="badge warn">Некритичная</span>Ошибки «е/ё», кавычки, тире, числа и другие правила оформления.</p></div>
+    <div class="criterion-def"><h4>Требования vs преимущества</h4><p><span class="badge warn">Некритичная</span>Баланс количества требований и преимуществ, чтобы вакансия не выглядела как список ограничений.</p></div>
+    <div class="criterion-def"><h4>Смысл и наполнение (ИИ)</h4><p>Смысловая оценка задач, требований и преимуществ. Появляется, когда подключена ИИ-проверка.</p></div>
+  </div>
+  <button class="close" type="button" id="criteriaDlgClose">Понятно</button>
 </dialog>
 
 <div class="tiles" id="tiles"></div>
@@ -313,8 +336,8 @@ BODY_CORE = """<div class="wrap">
 <table id="tbl"><thead><tr id="headrow"></tr></thead><tbody id="tbody"></tbody></table>
 </div>
 <footer>Сортировка — клик по заголовку столбца; по умолчанию самые проблемные сверху.
-Фильтры сохраняются в адресе страницы — ссылку можно шарить. Что такое тиры и статусы —
-кнопка «ⓘ Что такое тиры» наверху страницы.</footer>
+Фильтры сохраняются в адресе страницы — ссылку можно шарить. Определения тиров и критериев —
+в кнопках «ⓘ Что такое тиры» и «ⓘ Критерии» наверху страницы.</footer>
 </div>
 
 <script id="data" type="application/json">__DATA__</script>
@@ -429,6 +452,12 @@ const tierDlg = document.getElementById('tierDlg');
 document.getElementById('tierBtn').onclick = () => tierDlg.showModal();
 document.getElementById('tierDlgClose').onclick = () => tierDlg.close();
 tierDlg.onclick = e => { if (e.target === tierDlg) tierDlg.close(); };
+
+// ---------- поп-ап с определениями критериев ----------
+const criteriaDlg = document.getElementById('criteriaDlg');
+document.getElementById('criteriaBtn').onclick = () => criteriaDlg.showModal();
+document.getElementById('criteriaDlgClose').onclick = () => criteriaDlg.close();
+criteriaDlg.onclick = e => { if (e.target === criteriaDlg) criteriaDlg.close(); };
 
 // ---------- тема ----------
 const themeBtn = document.getElementById('themeBtn');
