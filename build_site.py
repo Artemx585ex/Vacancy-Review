@@ -101,6 +101,7 @@ dialog.upddlg { width: min(680px, 92vw); }
 .tile b { display: block; font-size: 31px; font-weight: 800; letter-spacing: -.02em; }
 .tile b.crit { color: var(--crit); }
 .tile b.good { color: var(--good); }
+.tile b.warn { color: var(--warn); }
 .tile span { color: var(--ink-2); font-size: 12.5px; }
 
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -510,13 +511,16 @@ function loadHash() {
 function tiles() {
   const n = DATA.vacancies.length;
   const reds = DATA.vacancies.filter(v => v._reds > 0).length;
-  const clean = DATA.vacancies.filter(v => v._reds === 0 && v._yellows === 0).length;
   const yellows = DATA.vacancies.filter(v => v._yellows > 0).length;
+  const criticalValue = reds === n ? 'Все' : `${reds} из ${n}`;
+  const criticalText = reds === n
+    ? 'вакансии требуют исправления критичных ошибок'
+    : 'вакансии с критическими ошибками';
+  const nonCriticalValue = yellows === n ? 'Все' : `${yellows} из ${n}`;
   document.getElementById('tiles').innerHTML = `
     <div class="tile"><b>${n}</b><span>вакансий проверено</span></div>
-    <div class="tile"><b class="crit">${reds}</b><span>с критическими ошибками</span></div>
-    <div class="tile"><b class="good">${clean}</b><span>без замечаний</span></div>
-    <div class="tile"><b>${yellows}</b><span>с некритичными замечаниями</span></div>`;
+    <div class="tile"><b class="crit">${criticalValue}</b><span>${criticalText}</span></div>
+    <div class="tile"><b class="warn">${nonCriticalValue}</b><span>вакансии с некритичными замечаниями</span></div>`;
 }
 
 function charts() {
@@ -827,4 +831,5 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
 
