@@ -270,10 +270,10 @@ BODY_CORE = """<div class="wrap">
 
 <dialog class="tiers" id="tierDlg" aria-labelledby="tierDlgTitle">
   <h3 id="tierDlgTitle">Как считаются тиры</h3>
-  <p>Тир — уровень приоритета исправления. Учитываются отдельные ошибки, а не
-  только проблемные критерии:</p>
+  <p>Тир — уровень приоритета исправления. Учитываются смысловые группы ошибок,
+  а не только проблемные критерии:</p>
   <ul>
-    <li><span class="tierpill tier1">Т1</span>есть хотя бы 1 критичная ошибка или больше 7 некритичных;</li>
+    <li><span class="tierpill tier1">Т1</span>есть хотя бы 1 критичная ошибка или больше 7 некритичных замечаний, кроме типографики и пунктуации;</li>
     <li><span class="tierpill tier2">Т2</span>от 4 до 7 некритичных ошибок;</li>
     <li><span class="tierpill tier3">Т3</span>от 1 до 3 некритичных ошибок.</li>
   </ul>
@@ -345,11 +345,15 @@ const DATA = JSON.parse(document.getElementById('data').textContent);
 const ICONS = { green: '✓', yellow: '!', red: '✕' };
 const ORDER = { red: 0, yellow: 1, green: 2 };
 const TIERS = [
-  { n: 1, color: '#d03b3b', desc: 'есть критичная ошибка или больше 7 некритичных' },
+  { n: 1, color: '#d03b3b', desc: 'есть критичная ошибка или больше 7 некритичных, кроме типографики и пунктуации' },
   { n: 2, color: '#d99a06', desc: '4–7 некритичных ошибок' },
   { n: 3, color: '#0ca30c', desc: '1–3 некритичных ошибок' },
 ];
-const tierOf = v => v._reds >= 1 || v._yellows > 7 ? 1 : v._yellows >= 4 ? 2 : v._yellows >= 1 ? 3 : 0;
+const countNonTypographyYellows = v =>
+  Object.entries(v.criteria).filter(([key]) => key !== 'typography')
+    .reduce((sum, [, criterion]) => sum + criterion.comments.filter(x => x.severity === 'yellow').length, 0);
+const tierOf = v => v._reds >= 1 || countNonTypographyYellows(v) > 7 ? 1 :
+  v._yellows >= 4 ? 2 : v._yellows >= 1 ? 3 : 0;
 const LOCAL = location.protocol === 'file:';
 
 let sortKey = '_tier', sortAsc = false, open = new Set();
@@ -831,5 +835,6 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
 
 
