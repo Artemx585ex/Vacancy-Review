@@ -218,6 +218,9 @@ tr.details td { white-space: normal; background: var(--card-2); padding: 14px; }
 .dcard li.red::marker { color: var(--crit); }
 .dcard li.yellow::marker { color: var(--warn); }
 .dcard li .badge { margin-right: 5px; vertical-align: 1px; }
+.dcard .group-title { color: var(--ink); font-weight: 650; }
+.dcard .group-details { margin: 6px 0 2px; padding-left: 18px; }
+.dcard .group-details li { margin-bottom: 4px; font-size: 12.5px; }
 .jump { display: inline-block; margin-left: 6px; color: var(--accent); font-size: 11.5px;
   font-weight: 650; text-decoration: none; white-space: nowrap; border: 1px solid var(--line);
   border-radius: 20px; padding: 0 8px; }
@@ -508,12 +511,12 @@ function tiles() {
   const n = DATA.vacancies.length;
   const reds = DATA.vacancies.filter(v => v._reds > 0).length;
   const clean = DATA.vacancies.filter(v => v._reds === 0 && v._yellows === 0).length;
-  const totalRed = DATA.vacancies.reduce((s, v) => s + v._reds, 0);
+  const yellows = DATA.vacancies.filter(v => v._yellows > 0).length;
   document.getElementById('tiles').innerHTML = `
     <div class="tile"><b>${n}</b><span>вакансий проверено</span></div>
     <div class="tile"><b class="crit">${reds}</b><span>с критическими ошибками</span></div>
     <div class="tile"><b class="good">${clean}</b><span>без замечаний</span></div>
-    <div class="tile"><b>${(totalRed / n).toFixed(1)}</b><span>критических ошибок на вакансию в среднем</span></div>`;
+    <div class="tile"><b>${yellows}</b><span>с некритичными замечаниями</span></div>`;
 }
 
 function charts() {
@@ -530,8 +533,8 @@ function charts() {
     </button>`).join('');
   const redByCrit = DATA.criteria.map(c => ({
     label: c.label,
-    n: DATA.vacancies.reduce((sum, v) => sum +
-      (v.criteria[c.key]?.comments ?? []).filter(x => x.severity === 'red').length, 0),
+    n: DATA.vacancies.filter(v =>
+      (v.criteria[c.key]?.comments ?? []).some(x => x.severity === 'red')).length,
   })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
   const maxC = Math.max(...redByCrit.map(x => x.n), 1);
   const critBars = redByCrit.map(x => `
@@ -557,7 +560,7 @@ function charts() {
     </div>
     <div class="chart">
       <h3>Критические ошибки по критериям</h3>
-      <div class="hint">фактическое число критичных ошибок, а не число проблемных вакансий</div>
+      <div class="hint">число вакансий с критичным нарушением по каждому критерию</div>
       <div class="hbars">${critBars}</div>
     </div>
     <div class="chart">
@@ -664,11 +667,12 @@ function exportProblems() {
   const lines = [['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Критерий', 'Статус',
     'Ошибка', 'Цитата', 'Ссылка с подсветкой'].map(csvCell).join(';')];
   rows.forEach(v => Object.entries(v.criteria).forEach(([k, c]) =>
-    c.comments.forEach(x => lines.push([
+    c.comments.forEach(x => (x.details ?? [x]).forEach(d => lines.push([
       'Т' + v._tier, v.title, v.url, v.direction, v.team, label[k],
-      x.severity === 'red' ? 'критичная' : 'некритичная', x.text, x.quote ?? '',
-      x.quote ? highlightUrl(v, x) : '',
-    ].map(csvCell).join(';')))));
+      x.severity === 'red' ? 'критичная' : 'некритичная',
+      x.details ? `${x.text}: ${d.text}` : x.text, d.quote ?? '',
+      d.quote ? highlightUrl(v, d) : '',
+    ].map(csvCell).join(';'))))));
   downloadCsv(lines, 'vacancy-problems.csv');
 }
 
@@ -702,16 +706,16 @@ function render() {
     tr.setAttribute('aria-expanded', open.has(v.file));
     const cells = DATA.criteria.map(c => {
       const comments = v.criteria[c.key]?.comments ?? [];
-      const red = comments.filter(x => x.severity === 'red').length;
-      const yellow = comments.filter(x => x.severity === 'yellow').length;
-      const counts = `${red ? `<span class="badge crit" title="${red} критичных ошибок">✕ ${red}</span>` : ''}` +
-        `${yellow ? `<span class="badge warn" title="${yellow} некритичных ошибок">! ${yellow}</span>` : ''}`;
-      return `<td class="crit-col">${counts || '<span class="chip green">✓</span>'}</td>`;
+      const hasRed = comments.some(x => x.severity === 'red');
+      const hasYellow = comments.some(x => x.severity === 'yellow');
+      const statuses = `${hasRed ? '<span class="badge crit" title="Есть критичное нарушение">✕</span>' : ''}` +
+        `${hasYellow ? '<span class="badge warn" title="Есть некритичное замечание">!</span>' : ''}`;
+      return `<td class="crit-col">${statuses || '<span class="chip green">✓</span>'}</td>`;
     }).join('');
     const badges =
       (v.closed ? `<span class="badge closed" title="Вакансии уже нет на career.avito.com">не на сайте</span>` : '') +
-      (v._reds ? `<span class="badge crit">✕ ${v._reds}</span>` : '') +
-      (v._yellows ? `<span class="badge warn">! ${v._yellows}</span>` : '');
+      (v._reds ? '<span class="badge crit">есть критичные</span>' : '') +
+      (v._yellows ? '<span class="badge warn">есть некритичные</span>' : '');
     const tier = v._tier ? `<span class="tierpill tier${v._tier}"
         title="Тир ${v._tier}: ${TIERS[v._tier - 1].desc}">Т${v._tier}</span>` :
         '<span class="chip green" title="Ошибок нет">✓</span>';
@@ -737,19 +741,23 @@ function render() {
       const cards = DATA.criteria.map(c => {
         const cr = v.criteria[c.key];
         if (!cr || !cr.comments.length) return '';
-        const redCount = cr.comments.filter(x => x.severity === 'red').length;
-        const yellowCount = cr.comments.filter(x => x.severity === 'yellow').length;
-        const severityBadges = `${redCount ? `<span class="badge crit">✕ ${redCount} критичных</span>` : ''}` +
-          `${yellowCount ? `<span class="badge warn">! ${yellowCount} некритичных</span>` : ''}`;
+        const hasRed = cr.comments.some(x => x.severity === 'red');
+        const hasYellow = cr.comments.some(x => x.severity === 'yellow');
+        const severityBadges = `${hasRed ? '<span class="badge crit">Критичная</span>' : ''}` +
+          `${hasYellow ? '<span class="badge warn">Некритичная</span>' : ''}`;
         const lis = cr.comments.map(x => {
-          const missing = /^нет (?:обязательного )?блока/i.test(x.text);
           const jump = ` <a class="jump" href="${x.quote ? highlightUrl(v, x) : v.url}" target="_blank"
             rel="noopener" title="Открыть вакансию на career.avito.com">${x.quote ? 'показать место ↗' : 'открыть вакансию ↗'}</a>`;
           const severityLabel = x.severity === 'red'
             ? '<span class="badge crit">Критичная</span>'
             : '<span class="badge warn">Некритичная</span>';
-          const missingLabel = missing ? '<span class="badge missing">Блок отсутствует</span>' : '';
-          return `<li class="${x.severity}">${severityLabel}${missingLabel}${esc(x.text)}${jump}</li>`;
+          const details = (x.details ?? []).map(d => {
+            const detailJump = ` <a class="jump" href="${d.quote ? highlightUrl(v, d) : v.url}" target="_blank"
+              rel="noopener" title="Открыть вакансию на career.avito.com">${d.quote ? 'показать место ↗' : 'открыть вакансию ↗'}</a>`;
+            return `<li>${esc(d.text)}${detailJump}</li>`;
+          }).join('');
+          const detailList = details ? `<ul class="group-details">${details}</ul>` : '';
+          return `<li class="${x.severity}">${severityLabel}<span class="group-title">${esc(x.text)}</span>${x.details ? detailList : jump}</li>`;
         }).join('');
         return `<div class="dcard"><h4><span class="chip ${cr.status}">${ICONS[cr.status]}</span>${c.label}<span class="badges">${severityBadges}</span></h4><ul>${lis}</ul></div>`;
       }).join('') || '<div class="dcard empty"><span class="chip green">✓</span> Замечаний нет</div>';
@@ -819,3 +827,4 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
+
