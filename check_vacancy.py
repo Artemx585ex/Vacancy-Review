@@ -205,13 +205,22 @@ def check_requirements_legal(vac):
     out = []
     sec = find_section(vac, "жд[её]м", "ждем", "ждём", "требован")
     if sec:
+        has_concrete_requirement = False
         for it in sec["items"]:
             m = PERSONAL_QUALITIES.search(it)
             if m:
                 out.append(("red", f"личное качество в обязательных требованиях: «{shorten(it)}» — по нему нельзя юридически отказать; перенести в «Будет здорово, если вы» или убрать",
                             it))
-            elif not CONCRETE_REQUIREMENT.search(it):
-                out.append(("yellow", f"неконкретное требование: «{shorten(it)}» — проверьте, можно ли по нему законно отказать кандидату", it))
+            if CONCRETE_REQUIREMENT.search(it):
+                has_concrete_requirement = True
+        # Общие формулировки допустимы, если в блоке есть хотя бы один
+        # проверяемый критерий: опыт, навык, инструмент, образование и т. п.
+        if not has_concrete_requirement:
+            out.append((
+                "yellow",
+                "в обязательных требованиях нет ни одного конкретного, проверяемого критерия",
+                sec["heading"],
+            ))
     return out
 
 
@@ -315,23 +324,66 @@ def check_balance(vac):
     return out
 
 
-# В отчёте показываем четыре укрупнённых критерия из таблицы. Внутренние
-# функции выше остаются точечными: благодаря этому комментарий всё так же
-# объясняет конкретную ошибку и ведёт к месту в вакансии.
+# В отчёте показываем четыре укрупнённых критерия из таблицы. Каждая
+# смысловая группа считается один раз, а конкретные отклонения остаются
+# списком деталей внутри неё.
+def grouped_finding(severity: str, text: str, findings: list[tuple]) -> list[tuple]:
+    if not findings:
+        return []
+    details = []
+    for finding in findings:
+        detail = {"text": finding[1]}
+        if len(finding) > 2 and finding[2]:
+            detail["quote"] = finding[2]
+        details.append(detail)
+    return [(severity, text, None, details)]
+
+
 def check_law_compliance(vac):
-    return check_discrimination(vac) + check_requirements_legal(vac)
+    discrimination = check_discrimination(vac)
+    requirements = check_requirements_legal(vac)
+    legal_requirements = [f for f in requirements if f[0] == "red"]
+    concrete_requirements = [f for f in requirements if f[0] == "yellow"]
+    return (
+        grouped_finding("red", "Дискриминационные требования", discrimination)
+        + grouped_finding("red", "Некорректные обязательные требования", legal_requirements)
+        + grouped_finding("yellow", "Нет конкретных требований для оценки кандидата", concrete_requirements)
+    )
 
 
 def check_benefits_and_advantages(vac):
-    return check_benefits(vac) + check_balance(vac)
+    benefits = check_benefits(vac)
+    balance = check_balance(vac)
+    return (
+        grouped_finding("red", "Не соблюдены обязательные бенефиты", benefits)
+        + grouped_finding("yellow", "Дисбаланс требований и преимуществ", balance)
+    )
 
 
 def check_orthography_typography(vac):
-    return check_typography(vac) + check_cliches(vac)
+    typography = check_typography(vac)
+    critical = [f for f in typography if f[0] == "red"]
+    noncritical = [f for f in typography if f[0] == "yellow"]
+    cliches = check_cliches(vac)
+    return (
+        grouped_finding("red", "Критичные орфографические и типографические ошибки", critical)
+        + grouped_finding("yellow", "Некритичные ошибки типографики", noncritical)
+        + grouped_finding("yellow", "Клише и сленг", cliches)
+    )
 
 
 def check_structure_and_format(vac):
-    return check_structure(vac) + check_list_format(vac) + check_title(vac)
+    structure = check_structure(vac)
+    missing = [f for f in structure if f[0] == "red" and f[1].startswith("нет блока")]
+    additional = [f for f in structure if f[0] == "red" and not f[1].startswith("нет блока")]
+    product_tech = [f for f in structure if f[0] == "yellow"]
+    return (
+        grouped_finding("red", "Пропущены обязательные блоки", missing)
+        + grouped_finding("red", "Дополнительные требования находятся в обязательном блоке", additional)
+        + grouped_finding("yellow", "Структурные замечания", product_tech)
+        + grouped_finding("yellow", "Ошибки оформления списков", check_list_format(vac))
+        + grouped_finding("yellow", "Замечания к названию вакансии", check_title(vac))
+    )
 
 
 AI_SCHEMA = {
@@ -502,6 +554,8 @@ def review(vac: dict, ai_enabled: bool) -> dict:
             c = {"severity": f[0], "text": f[1]}
             if len(f) > 2 and f[2]:
                 c["quote"] = f[2]
+            if len(f) > 3 and f[3]:
+                c["details"] = f[3]
             comments.append(c)
         result[key] = {"status": status, "comments": comments}
     meaning = check_meaning(vac, ai_enabled)
@@ -577,7 +631,3 @@ def main() -> int:
 if __name__ == "__main__":
     sys.exit(main())
 
-
-
-if __name__ == "__main__":
-    sys.exit(main())
