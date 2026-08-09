@@ -174,8 +174,8 @@ def check_structure(vac):
 
     # В дополнительном блоке не нужны ещё одни «дополнительные» требования:
     # «Будет плюсом» и «желательно» следует сформулировать как обычный пункт.
-    nice = find_section(vac, "будет здорово")
-    if nice:
+    nice_sections = [s for s in sections if "будет здорово" in s["heading"].lower()]
+    for nice in nice_sections:
         for item in nice["items"] + nice["paragraphs"]:
             if NESTED_ADDITIONAL_REQUIREMENT.search(item):
                 out.append((
@@ -183,6 +183,16 @@ def check_structure(vac):
                     f"повторное дополнительное требование в блоке «Будет здорово, если вы»: «{shorten(item)}» — уберите «будет плюсом» / «желательно»",
                     item,
                 ))
+
+    # Один и тот же дополнительный блок не должен идти подряд дважды.
+    # Показываем каждый повтор, чтобы редактору было понятно, какой заголовок
+    # нужно объединить с предыдущим блоком.
+    for nice in nice_sections[1:]:
+        out.append((
+            "yellow",
+            "повторный блок «Будет здорово, если вы» — объедините его с предыдущим блоком дополнительных требований",
+            nice["heading"],
+        ))
 
     # Для Product & Tech нужен именно блок с примерами будущих задач, а не
     # только общий перечень обязанностей.
@@ -384,8 +394,13 @@ def check_structure_and_format(vac):
     structure = check_structure(vac)
     missing = [f for f in structure if f[0] == "red" and f[1].startswith("нет блока")]
     additional = [f for f in structure if f[0] == "red" and not f[1].startswith("нет блока")]
-    nested_additional = [f for f in structure if f[0] == "yellow" and f[1].startswith("повторное дополнительное требование")]
-    product_tech = [f for f in structure if f[0] == "yellow" and not f[1].startswith("повторное дополнительное требование")]
+    nested_additional = [
+        f for f in structure
+        if f[0] == "yellow" and f[1].startswith((
+            "повторное дополнительное требование", "повторный блок «Будет здорово"
+        ))
+    ]
+    product_tech = [f for f in structure if f[0] == "yellow" and f not in nested_additional]
     return (
         grouped_finding("red", "Пропущены обязательные блоки", missing)
         + grouped_finding("red", "Дополнительные требования находятся в обязательном блоке", additional)
