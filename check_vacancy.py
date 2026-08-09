@@ -184,14 +184,20 @@ def check_structure(vac):
                     item,
                 ))
 
-    # Один и тот же дополнительный блок не должен идти подряд дважды.
-    # Показываем каждый повтор, чтобы редактору было понятно, какой заголовок
-    # нужно объединить с предыдущим блоком.
-    for nice in nice_sections[1:]:
+    # Один и тот же дополнительный блок не должен идти подряд дважды. Иногда
+    # сайт отдаёт второй заголовок без markdown-разметки, поэтому ищем его и
+    # среди абзацев первого блока.
+    repeated_nice_headings = [s["heading"] for s in nice_sections[1:]]
+    for nice in nice_sections:
+        repeated_nice_headings.extend(
+            paragraph for paragraph in nice["paragraphs"]
+            if re.fullmatch(r"будет\s+здорово\s*,?\s*если\s+вы\s*:?", paragraph, re.I)
+        )
+    for heading in repeated_nice_headings:
         out.append((
             "yellow",
             "повторный блок «Будет здорово, если вы» — объедините его с предыдущим блоком дополнительных требований",
-            nice["heading"],
+            heading,
         ))
 
     # Для Product & Tech нужен именно блок с примерами будущих задач, а не
