@@ -97,6 +97,12 @@ BENEFIT_BLOCKS = [
 ADDITIONAL_REQUIREMENT = re.compile(
     r"\b(?:желательно|будет\s+(?:здорово|плюсом)|плюсом|преимуществом)\b", re.I
 )
+# В блоке «Будет здорово, если вы» формулировка «будет плюсом» создаёт
+# ненужный второй уровень дополнительных требований. Это замечание, но не
+# критичная ошибка: сам дополнительный блок существует и читается корректно.
+NESTED_ADDITIONAL_REQUIREMENT = re.compile(
+    r"\b(?:желательно|будет\s+плюсом|плюсом|преимуществом)\b", re.I
+)
 PRODUCT_TECH_DIRECTIONS = {
     "управление продуктом", "разработка", "data science", "дизайн",
     "информационная безопасность",
@@ -163,6 +169,18 @@ def check_structure(vac):
                 out.append((
                     "red",
                     f"дополнительное требование в обязательном блоке: «{shorten(item)}» — вынесите его в «Будет здорово, если вы»",
+                    item,
+                ))
+
+    # В дополнительном блоке не нужны ещё одни «дополнительные» требования:
+    # «Будет плюсом» и «желательно» следует сформулировать как обычный пункт.
+    nice = find_section(vac, "будет здорово")
+    if nice:
+        for item in nice["items"] + nice["paragraphs"]:
+            if NESTED_ADDITIONAL_REQUIREMENT.search(item):
+                out.append((
+                    "yellow",
+                    f"повторное дополнительное требование в блоке «Будет здорово, если вы»: «{shorten(item)}» — уберите «будет плюсом» / «желательно»",
                     item,
                 ))
 
@@ -366,10 +384,12 @@ def check_structure_and_format(vac):
     structure = check_structure(vac)
     missing = [f for f in structure if f[0] == "red" and f[1].startswith("нет блока")]
     additional = [f for f in structure if f[0] == "red" and not f[1].startswith("нет блока")]
-    product_tech = [f for f in structure if f[0] == "yellow"]
+    nested_additional = [f for f in structure if f[0] == "yellow" and f[1].startswith("повторное дополнительное требование")]
+    product_tech = [f for f in structure if f[0] == "yellow" and not f[1].startswith("повторное дополнительное требование")]
     return (
         grouped_finding("red", "Пропущены обязательные блоки", missing)
         + grouped_finding("red", "Дополнительные требования находятся в обязательном блоке", additional)
+        + grouped_finding("yellow", "Повторные дополнительные требования", nested_additional)
         + grouped_finding("yellow", "Структурные замечания", product_tech)
         + grouped_finding("yellow", "Ошибки оформления списков", check_list_format(vac))
         + grouped_finding("yellow", "Замечания к названию вакансии", check_title(vac))
