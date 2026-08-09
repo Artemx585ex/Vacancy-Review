@@ -62,14 +62,6 @@ def find_section(vac: dict, *keywords: str) -> dict | None:
 # каждая функция возвращает список (severity, comment) или (severity, comment, quote),
 # где quote — точная цитата из текста вакансии для подсветки на сайте (#:~:text=)
 
-PERSONAL_QUALITIES = re.compile(
-    r"проактивн|стрессоустойчив|аналитическ\w+\s+склад|системн\w+\s+мышлени"
-    r"|гибкость|адаптир\w+ся|ориентирован\w*\s+на\s+результат|коммуникабельн"
-    r"|инициативн|командн\w+\s+игрок|многозадачн|внимательн\w+\s+к\s+деталям"
-    r"|лидерск\w+\s+качеств|энергичн|амбициозн|гореть\s+идеей|горите\s+идеей",
-    re.I,
-)
-
 CLICHES = re.compile(
     r"\bданн(?:ый|ая|ое|ого|ой|ую|ом)\b|молод(?:ой|ым)\s+и\s+дружн|дружн\w+\s+коллектив"
     r"|печеньк|гор(?:еть|ите|ящих)\s+идее|доставк\w+\s+проектов|чай,\s*кофе"
@@ -80,7 +72,7 @@ CLICHES = re.compile(
 # Признаки обязательных требований, по которым работодатель может обоснованно
 # принять решение по кандидату. Отсутствие таких признаков требует проверки ИИ.
 CONCRETE_REQUIREMENT = re.compile(
-    r"\d+\s*(?:год|лет|года)|опыт|знани|владен|умени|навык|образован|"
+    r"\d+\s*(?:год|лет|года)|опыт|знани|владен|образован|"
     r"сертификат|английск|инструмент|программ|sql|python|excel|pn[l]?|api",
     re.I,
 )
@@ -143,13 +135,15 @@ def check_discrimination(vac):
 def check_structure(vac):
     out = []
     sections = vac["sections"]
-    tasks = find_section(vac, "задачи вас ждут", "будущих задач", "предстоит заниматься")
+    # «Примеры будущих задач» — отдельный необязательный блок. Он не заменяет
+    # обязательные обязанности / «Какие задачи вас ждут».
+    tasks = find_section(vac, "задачи вас ждут", "предстоит заниматься")
     requirements = find_section(vac, "ждем, что вы", "ждём, что вы", "требован")
     benefits = find_section(vac, "работа у нас", "условия")
     if not tasks:
         # Несуществующий блок подсветить нельзя: ведём к ближайшему разделу.
         near = requirements or benefits or (sections[0] if sections else None)
-        out.append(("red", "нет блока задач («Какие задачи вас ждут» или «Примеры будущих задач»)",
+        out.append(("red", "нет блока задач («Какие задачи вас ждут»)",
                     near["heading"] if near else None))
     if not requirements:
         near = tasks or benefits or (sections[0] if sections else None)
@@ -206,11 +200,7 @@ def check_requirements_legal(vac):
     sec = find_section(vac, "жд[её]м", "ждем", "ждём", "требован")
     if sec:
         has_concrete_requirement = False
-        for it in sec["items"]:
-            m = PERSONAL_QUALITIES.search(it)
-            if m:
-                out.append(("red", f"личное качество в обязательных требованиях: «{shorten(it)}» — по нему нельзя юридически отказать; перенести в «Будет здорово, если вы» или убрать",
-                            it))
+        for it in sec["items"] + sec["paragraphs"]:
             if CONCRETE_REQUIREMENT.search(it):
                 has_concrete_requirement = True
         # Общие формулировки допустимы, если в блоке есть хотя бы один
@@ -630,4 +620,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
