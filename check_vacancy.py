@@ -305,7 +305,7 @@ def check_typography(vac):
     # Редполитика: эти названия имеют однозначное нормативное написание.
     # Проверяем только конкретные варианты, чтобы не превращать редактуру в
     # источник ложных срабатываний.
-    avito = list(re.finditer(r"\bAvito\b(?!\s+Life)", body))
+    avito = list(re.finditer(r"\bAvito\b(?!\s+(?:Life|Pro|Journal)\b)", body))
     if avito:
         for m in avito:
             subs.append(("red", "«Avito» латиницей — по-русски «Авито» (редполитика)", frag(body, m)))
@@ -327,10 +327,6 @@ def check_typography(vac):
         (r"\bAvito\s+Journal\b", "«Avito Journal» → «Авито Журнал»"),
         (r"\bAvtoteka\b", "«Avtoteka» → «Автотека»"),
         (r"\bCalltracking\b", "«Calltracking» → «Коллтрекинг»"),
-        (r"\bVAS\b", "«VAS» → «продвижение»"),
-        (r"\b(?:e-?mail)\b", "«e-mail» → «почта» или «электронная почта»"),
-        (r"\b(?:online|offline)\b", "английское написание → «онлайн» или «офлайн»"),
-        (r"\bWI-FI\b", "«WI-FI» → «Wi‑Fi»"),
     ]
     for pattern, replacement in product_rules:
         for m in re.finditer(pattern, body, re.I):
@@ -338,6 +334,20 @@ def check_typography(vac):
 
     for m in re.finditer(r"(?<![«\"])\bМакспостер\b(?![»\"])", body):
         subs.append(("red", "название сервиса пишется «Макспостер» — в кавычках (редполитика)", frag(body, m)))
+
+    # Это правила написания терминов из редполитики, но не имена бренда или
+    # продуктов. Поэтому они остаются некритичными редакторскими замечаниями.
+    editorial_terms = [
+        (r"\bVAS\b", "«VAS» → «продвижение»"),
+        (r"\b(?:e-?mail)\b", "«email» → «почта» или «электронная почта»"),
+        (r"\b(?:SMS|sms)\b", "«SMS» → «смс»"),
+        (r"\bpush(?:-уведомлени\w*)?\b", "«push» → «пуш» или «пуш-уведомление»"),
+        (r"\b(?:online|offline)\b", "английское написание → «онлайн» или «офлайн»"),
+        (r"\bWI-FI\b", "«WI-FI» → «Wi‑Fi»"),
+    ]
+    for pattern, replacement in editorial_terms:
+        for m in re.finditer(pattern, body, re.I):
+            subs.append(("yellow", f"«{m.group(0)}»: {replacement} (редполитика)", frag(body, m)))
     hyph = list(re.finditer(r"\b(IT|HR|UX|DS|ML)\s+(сфер|направлени|инструмент|команд|специалист|систем|решени)\w*", body))
     if hyph:
         for m in hyph:
