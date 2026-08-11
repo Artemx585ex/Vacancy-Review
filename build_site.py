@@ -103,6 +103,7 @@ dialog.upddlg { width: min(680px, 92vw); }
 .tile b.good { color: var(--good); }
 .tile b.warn { color: var(--warn); }
 .tile span { color: var(--ink-2); font-size: 12.5px; }
+.tile small { display: block; color: var(--ink-3); font-size: 11.5px; margin-top: 3px; }
 
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px; margin-bottom: 18px; }
@@ -514,17 +515,16 @@ function loadHash() {
 
 function tiles() {
   const n = DATA.vacancies.length;
-  const reds = DATA.vacancies.filter(v => v._reds > 0).length;
-  const yellows = DATA.vacancies.filter(v => v._yellows > 0).length;
-  const criticalValue = reds === n ? 'Все' : `${reds} из ${n}`;
-  const criticalText = reds === n
-    ? 'вакансии требуют исправления критичных ошибок'
-    : 'вакансии с критическими ошибками';
-  const nonCriticalValue = yellows === n ? 'Все' : `${yellows} из ${n}`;
+  const onlyCritical = DATA.vacancies.filter(v => v._reds > 0 && v._yellows === 0).length;
+  const criticalAndNoncritical = DATA.vacancies.filter(v => v._reds > 0 && v._yellows > 0).length;
+  const onlyNoncritical = DATA.vacancies.filter(v => v._reds === 0 && v._yellows > 0).length;
+  const clean = DATA.vacancies.filter(v => v._reds === 0 && v._yellows === 0).length;
   document.getElementById('tiles').innerHTML = `
     <div class="tile"><b>${n}</b><span>вакансий проверено</span></div>
-    <div class="tile"><b class="crit">${criticalValue}</b><span>${criticalText}</span></div>
-    <div class="tile"><b class="warn">${nonCriticalValue}</b><span>вакансии с некритичными замечаниями</span></div>`;
+    <div class="tile"><b class="crit">${onlyCritical}</b><span>только критичные</span><small>есть красные, жёлтых нет</small></div>
+    <div class="tile"><b class="crit">${criticalAndNoncritical}</b><span>критичные + некритичные</span><small>есть красные и жёлтые</small></div>
+    <div class="tile"><b class="warn">${onlyNoncritical}</b><span>только некритичные</span><small>красных нет, есть жёлтые</small></div>
+    <div class="tile"><b class="good">${clean}</b><span>без замечаний</span><small>нет красных и жёлтых</small></div>`;
 }
 
 function charts() {
