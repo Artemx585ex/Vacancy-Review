@@ -302,10 +302,42 @@ def check_typography(vac):
         shown = ", ".join(m.group(0) for m in nums[:3])
         for m in nums:
             subs.append(("yellow", f"число без разбивки на разряды: {m.group(0)} (2.11)", frag(body, m)))
+    # Редполитика: эти названия имеют однозначное нормативное написание.
+    # Проверяем только конкретные варианты, чтобы не превращать редактуру в
+    # источник ложных срабатываний.
     avito = list(re.finditer(r"\bAvito\b(?!\s+Life)", body))
     if avito:
         for m in avito:
-            subs.append(("red", "«Avito» латиницей — по-русски «Авито» (2.12)", frag(body, m)))
+            subs.append(("red", "«Avito» латиницей — по-русски «Авито» (редполитика)", frag(body, m)))
+
+    verticals = "Авто|Работа|Недвижимость|Услуги"
+    bad_vertical_patterns = [
+        (rf"\bАвито\s*[-—–]\s*({verticals})\b", "название вертикали пишется раздельно"),
+        (rf"\bАвито\s+({verticals.lower()})\b", "второе слово в названии вертикали пишется с заглавной буквы"),
+        (rf"[«\"]Авито\s+({verticals})[»\"]", "название вертикали пишется без кавычек"),
+    ]
+    for pattern, reason in bad_vertical_patterns:
+        for m in re.finditer(pattern, body):
+            found = m.group(0)
+            canonical = "Авито " + m.group(1).capitalize()
+            subs.append(("red", f"«{found}» → «{canonical}»: {reason} (редполитика)", frag(body, m)))
+
+    product_rules = [
+        (r"\bAvito\s+Pro\b", "«Avito Pro» → «Авито Pro»"),
+        (r"\bAvito\s+Journal\b", "«Avito Journal» → «Авито Журнал»"),
+        (r"\bAvtoteka\b", "«Avtoteka» → «Автотека»"),
+        (r"\bCalltracking\b", "«Calltracking» → «Коллтрекинг»"),
+        (r"\bVAS\b", "«VAS» → «продвижение»"),
+        (r"\b(?:e-?mail)\b", "«e-mail» → «почта» или «электронная почта»"),
+        (r"\b(?:online|offline)\b", "английское написание → «онлайн» или «офлайн»"),
+        (r"\bWI-FI\b", "«WI-FI» → «Wi‑Fi»"),
+    ]
+    for pattern, replacement in product_rules:
+        for m in re.finditer(pattern, body, re.I):
+            subs.append(("red", f"«{m.group(0)}»: {replacement} (редполитика)", frag(body, m)))
+
+    for m in re.finditer(r"(?<![«\"])\bМакспостер\b(?![»\"])", body):
+        subs.append(("red", "название сервиса пишется «Макспостер» — в кавычках (редполитика)", frag(body, m)))
     hyph = list(re.finditer(r"\b(IT|HR|UX|DS|ML)\s+(сфер|направлени|инструмент|команд|специалист|систем|решени)\w*", body))
     if hyph:
         for m in hyph:
@@ -325,27 +357,6 @@ def check_typography(vac):
         for m in brackets:
             subs.append(("yellow", "скобки в тексте: гайд советует избегать (2.4 п. 4)", frag(body, m)))
     return subs
-
-
-def check_balance(vac):
-    """Проверяет баланс объёма требований и преимуществ по порогу из таблицы."""
-    out = []
-    ben = find_section(vac, "работа у нас", "условия")
-    req = find_section(vac, "ждем, что вы", "ждём, что вы", "требован")
-    nice = find_section(vac, "будет здорово")
-    req_words = section_word_count(req) + section_word_count(nice)
-    ben_words = section_word_count(ben)
-    if req_words and ben_words:
-        difference = abs(req_words - ben_words) / min(req_words, ben_words)
-        if difference > 0.30:
-            larger = "требований" if req_words > ben_words else "преимуществ"
-            percent = round(difference * 100)
-            out.append((
-                "yellow",
-                f"дисбаланс объёма требований и преимуществ: {larger} больше на {percent}% (порог — 30%)",
-                (req or ben)["heading"],
-            ))
-    return out
 
 
 # В отчёте показываем четыре укрупнённых критерия из таблицы. Каждая
@@ -377,11 +388,7 @@ def check_law_compliance(vac):
 
 def check_benefits_and_advantages(vac):
     benefits = check_benefits(vac)
-    balance = check_balance(vac)
-    return (
-        grouped_finding("red", "Не соблюдены обязательные бенефиты", benefits)
-        + grouped_finding("yellow", "Дисбаланс требований и преимуществ", balance)
-    )
+    return grouped_finding("red", "Не соблюдены обязательные бенефиты", benefits)
 
 
 def check_orthography_typography(vac):
