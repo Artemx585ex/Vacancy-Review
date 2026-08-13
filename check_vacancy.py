@@ -626,7 +626,25 @@ def main() -> int:
     parser.add_argument("-d", "--dir", default="vacancies", help="папка с md-файлами вакансий")
     parser.add_argument("-o", "--out", default="report.json", help="куда писать отчёт")
     parser.add_argument("--no-ai", action="store_true", help="не запускать смысловую проверку через OpenAI API")
+    parser.add_argument(
+        "--recruiters", default="recruiters.json",
+        help="JSON: id вакансии → имя рекрутера (по умолчанию recruiters.json)",
+    )
     args = parser.parse_args()
+
+    recruiters: dict[str, str] = {}
+    recruiters_file = pathlib.Path(args.recruiters)
+    if recruiters_file.exists():
+        try:
+            raw_recruiters = json.loads(recruiters_file.read_text(encoding="utf-8"))
+            if isinstance(raw_recruiters, dict):
+                recruiters = {
+                    str(vacancy_id): str(name).strip()
+                    for vacancy_id, name in raw_recruiters.items()
+                    if str(name).strip()
+                }
+        except (ValueError, OSError):
+            print(f"⚠ не удалось прочитать список рекрутеров: {recruiters_file}", file=sys.stderr)
 
     files = sorted(pathlib.Path(args.dir).glob("*.md"))
     if not files:
@@ -654,6 +672,7 @@ def main() -> int:
             "direction": vac["meta"].get("направление", ""),
             "team": vac["meta"].get("команда", ""),
             "location": vac["meta"].get("локация", ""),
+            "recruiter": recruiters.get(str(vac["meta"].get("id", "")), ""),
             "published": vac["meta"].get("опубликована", ""),
             "criteria": res,
         })
