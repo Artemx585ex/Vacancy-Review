@@ -30,3 +30,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy worker.js --assets=site --name=old-flower-c5e6 --compatibility-date=2026-07-30
+          secrets: |
+            DASHBOARD_PASSWORD
+        env:
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
