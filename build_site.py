@@ -308,6 +308,7 @@ BODY_CORE = """<div class="wrap">
     <select id="fTier" aria-label="Фильтр по тиру"><option value="">Все тиры</option></select>
     <select id="fDir" aria-label="Фильтр по направлению"><option value="">Все направления</option></select>
     <select id="fTeam" aria-label="Фильтр по команде"><option value="">Все команды</option></select>
+    <select id="fRecruiter" aria-label="Фильтр по рекрутеру"><option value="">Все рекрутеры</option></select>
     <select id="fCritical" aria-label="Фильтр по числу критических ошибок">
       <option value="">Критические ошибки: все</option><option value="1">1+</option>
       <option value="2">2+</option><option value="3">3+</option><option value="5">5+</option>
@@ -481,7 +482,8 @@ themeBtn.onclick = () =>
 // ---------- фильтры ----------
 const dirs = [...new Set(DATA.vacancies.map(v => v.direction).filter(Boolean))].sort();
 const teams = [...new Set(DATA.vacancies.map(v => v.team).filter(Boolean))].sort();
-for (const [id, list] of [['fDir', dirs], ['fTeam', teams]]) {
+const recruiters = [...new Set(DATA.vacancies.map(v => v.recruiter).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+for (const [id, list] of [['fDir', dirs], ['fTeam', teams], ['fRecruiter', recruiters]]) {
   const sel = document.getElementById(id);
   list.forEach(x => sel.append(new Option(x, x)));
 }
@@ -495,7 +497,7 @@ for (const [id, list] of [['fDir', dirs], ['fTeam', teams]]) {
 }
 
 // состояние фильтров в URL-хеше
-const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fCriticalCriterion', 'fClosed'];
+const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'];
 function saveHash() {
   const p = new URLSearchParams();
   for (const id of FIELDS) {
@@ -619,13 +621,14 @@ function visible() {
   const ti = document.getElementById('fTier').value;
   const d = document.getElementById('fDir').value;
   const t = document.getElementById('fTeam').value;
+  const recruiter = document.getElementById('fRecruiter').value;
   const criticalMin = +document.getElementById('fCritical').value || 0;
   const criticalCriterion = document.getElementById('fCriticalCriterion').value;
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
     (!ti || v._tier === +ti) &&
-    (!d || v.direction === d) && (!t || v.team === t) && (!criticalMin || v._reds >= criticalMin) &&
+    (!d || v.direction === d) && (!t || v.team === t) && (!recruiter || v.recruiter === recruiter) && (!criticalMin || v._reds >= criticalMin) &&
     (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
     (!hc || !v.closed));
   rows.sort((a, b) => {
@@ -644,7 +647,7 @@ function visible() {
 }
 
 function resetFilters() {
-  for (const id of ['q', 'fTier', 'fDir', 'fTeam']) document.getElementById(id).value = '';
+  for (const id of ['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter']) document.getElementById(id).value = '';
   document.getElementById('fCritical').value = '';
   document.getElementById('fCriticalCriterion').value = '';
   document.getElementById('fClosed').checked = false;
@@ -795,7 +798,7 @@ function render() {
 }
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-['q', 'fTier', 'fDir', 'fTeam', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
+['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 document.getElementById('csvBtn').onclick = exportCsv;
 document.getElementById('xlsBtn').onclick = exportProblems;
