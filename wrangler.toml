@@ -1,6 +1,8 @@
 name = "old-flower-c5e6"
 compatibility_date = "2026-07-30"
+main = "./worker.js"
 
 [assets]
 directory = "./site"
+binding = "ASSETS"
 run_worker_first = true
