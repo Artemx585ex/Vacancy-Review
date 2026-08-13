@@ -30,6 +30,16 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy worker.js --assets=site --name=old-flower-c5e6 --compatibility-date=2026-07-30
+
+      # Wrangler загружает секреты перед командой deploy. Публикация при этом
+      # перезаписывает настройки Worker, поэтому пароль передаём отдельным
+      # шагом уже после обновления сайта.
+      - name: Protect dashboard with password
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: whoami
           secrets: |
             DASHBOARD_PASSWORD
         env:
