@@ -29,7 +29,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy worker.js --name=old-flower-c5e6 --compatibility-date=2026-07-30
+          command: deploy
 
       # Wrangler загружает секреты перед командой deploy. Публикация при этом
       # перезаписывает настройки Worker, поэтому пароль передаём отдельным
