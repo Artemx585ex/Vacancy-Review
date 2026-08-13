@@ -738,7 +738,7 @@ function render() {
         target="_blank" rel="noopener" title="Открыть вакансию на career.avito.com">${v.title}</a>
       <span class="badges">${badges}</span>
       <div class="meta">${[v.direction, v.team, v.location].filter(Boolean).join(' · ')}</div></td>
-      <td class="recruiter-col">${v.recruiter ? `<span class="recruiter-pill">${esc(v.recruiter)}</span>` : '<span class="recruiter-pill empty">не указан</span>'}</td>${cells}`;
+      <td class="recruiter-col">${v.recruiter ? `<span class="recruiter-pill">${esc(v.recruiter)}</span>` : '<span class="recruiter-pill empty">нет данных</span>'}</td>${cells}`;
     tr.querySelector('a').onclick = e => e.stopPropagation();
     const toggle = () => {
       if (getSelection().toString()) return;
