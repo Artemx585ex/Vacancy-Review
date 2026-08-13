@@ -656,11 +656,11 @@ function downloadCsv(lines, name) {
 
 function exportCsv() {
   const rows = visible();
-  const head = ['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Локация', 'Опубликована',
+  const head = ['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Локация', 'Рекрутер', 'Опубликована',
     'Критических ошибок', 'Некритичных ошибок', ...DATA.criteria.map(c => c.label)];
   const lines = [head.map(csvCell).join(';')];
   rows.forEach(v => lines.push([
-    'Т' + v._tier, v.title, v.url, v.direction, v.team, v.location, v.published,
+    'Т' + v._tier, v.title, v.url, v.direction, v.team, v.location, v.recruiter, v.published,
     v._reds, v._yellows,
     ...DATA.criteria.map(c => v.criteria[c.key]?.status ?? 'green'),
   ].map(csvCell).join(';')));
@@ -730,7 +730,7 @@ function render() {
       <td class="vac"><span class="chev">${open.has(v.file) ? '▼' : '▶'}</span><a href="${v.url}"
         target="_blank" rel="noopener" title="Открыть вакансию на career.avito.com">${v.title}</a>
       <span class="badges">${badges}</span>
-      <div class="meta">${[v.direction, v.team, v.location].filter(Boolean).join(' · ')}</div></td>${cells}`;
+      <div class="meta">${[v.direction, v.team, v.location, v.recruiter ? `Рекрутер: ${v.recruiter}` : ''].filter(Boolean).join(' · ')}</div></td>${cells}`;
     tr.querySelector('a').onclick = e => e.stopPropagation();
     const toggle = () => {
       if (getSelection().toString()) return;
@@ -771,6 +771,7 @@ function render() {
       const meta = [
         v.closed ? '<span class="closednote">вакансии уже нет на сайте</span>' : '',
         v.published ? `опубликована ${v.published}` : '',
+        v.recruiter ? `рекрутер: ${esc(v.recruiter)}` : '',
         (LOCAL || SERVED) ? `<a href="../vacancies/${v.file}" target="_blank" rel="noopener">текст вакансии (md)</a>` : '']
         .filter(Boolean).join(' · ');
       const delOne = (v.closed && SERVED)
