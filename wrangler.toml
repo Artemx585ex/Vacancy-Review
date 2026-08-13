@@ -3,3 +3,4 @@ compatibility_date = "2026-07-30"
 
 [assets]
 directory = "./site"
+run_worker_first = true
