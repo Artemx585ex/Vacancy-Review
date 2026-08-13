@@ -185,6 +185,9 @@ td.vac .chev { color: var(--ink-3); font-size: 10px; margin-right: 6px; }
 td.vac a { color: var(--ink); font-weight: 650; text-decoration: none; }
 td.vac a:hover { color: var(--accent); }
 td.vac .meta { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.recruiter-pill { display: inline-flex; align-items: center; margin: 3px 0 0 7px;
+  padding: 2px 8px; border-radius: 20px; background: var(--accent-soft); color: var(--accent);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap; }
 .badges { display: inline-flex; gap: 6px; margin-left: 6px; vertical-align: 1px; }
 .badge { font-size: 10.5px; font-weight: 700; border-radius: 20px; padding: 1px 8px; }
 .badge.crit { background: var(--crit-bg); color: var(--crit); }
@@ -730,7 +733,7 @@ function render() {
       <td class="vac"><span class="chev">${open.has(v.file) ? '▼' : '▶'}</span><a href="${v.url}"
         target="_blank" rel="noopener" title="Открыть вакансию на career.avito.com">${v.title}</a>
       <span class="badges">${badges}</span>
-      <div class="meta">${[v.direction, v.team, v.location, v.recruiter ? `Рекрутер: ${v.recruiter}` : ''].filter(Boolean).join(' · ')}</div></td>${cells}`;
+      <div class="meta">${[v.direction, v.team, v.location].filter(Boolean).join(' · ')}${v.recruiter ? `<span class="recruiter-pill">Рекрутер: ${esc(v.recruiter)}</span>` : ''}</div></td>${cells}`;
     tr.querySelector('a').onclick = e => e.stopPropagation();
     const toggle = () => {
       if (getSelection().toString()) return;
