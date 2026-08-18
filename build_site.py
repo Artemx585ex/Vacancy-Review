@@ -92,7 +92,7 @@ dialog.upddlg { width: min(680px, 92vw); }
   box-shadow: var(--shadow); white-space: nowrap; }
 .theme-btn:hover { color: var(--ink); box-shadow: var(--shadow-up); }
 
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px; margin: 26px 0 14px; }
 .tile { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
   padding: 18px 20px 14px; box-shadow: var(--shadow);
@@ -104,8 +104,11 @@ dialog.upddlg { width: min(680px, 92vw); }
 .tile b.warn { color: var(--warn); }
 .tile span { color: var(--ink-2); font-size: 12.5px; }
 .tile.coverage { grid-column: 1 / -1; }
-.tile .tile-title { display: block; margin-bottom: 5px; color: var(--ink-3); font-size: 12px; font-weight: 700; }
+.tile.coverage b { font-size: 26px; }
+.tile .tile-title { display: block; margin-bottom: 8px; color: var(--ink-3); font-size: 12px; font-weight: 700; }
+.tile .tile-unit { display: block; margin-top: 1px; color: var(--ink-2); font-size: 14px; font-weight: 700; }
 .tile .tile-detail { display: block; margin-top: 6px; color: var(--ink-3); font-size: 12px; }
+@media (max-width: 680px) { .tiles { grid-template-columns: 1fr; } }
 
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px; margin-bottom: 18px; }
@@ -531,9 +534,9 @@ function tiles() {
   const withCritical = onlyCritical + criticalAndNoncritical;
   document.getElementById('tiles').innerHTML = `
     <div class="tile coverage"><span class="tile-title">✓ Покрытие проверки</span><b>Все опубликованные вакансии проверены — ${n} из ${n}</b></div>
-    <div class="tile"><span class="tile-title">✕ Критичные замечания</span><b class="crit">${withCritical} вакансий</b><span class="tile-detail">только критичные — ${onlyCritical} · критичные + некритичные — ${criticalAndNoncritical}</span></div>
-    <div class="tile"><span class="tile-title">! Только некритичные замечания</span><b class="warn">${onlyNoncritical} вакансий</b></div>
-    <div class="tile"><span class="tile-title">✓ Без замечаний</span><b class="good">${clean} вакансий</b></div>`;
+    <div class="tile"><span class="tile-title">✕ Критичные замечания</span><b class="crit">${withCritical}</b><span class="tile-unit">вакансий</span><span class="tile-detail">только критичные — ${onlyCritical} · критичные + некритичные — ${criticalAndNoncritical}</span></div>
+    <div class="tile"><span class="tile-title">! Только некритичные замечания</span><b class="warn">${onlyNoncritical}</b><span class="tile-unit">вакансий</span></div>
+    <div class="tile"><span class="tile-title">✓ Без замечаний</span><b class="good">${clean}</b><span class="tile-unit">вакансий</span></div>`;
 }
 
 function charts() {
