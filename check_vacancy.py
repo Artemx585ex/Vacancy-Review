@@ -581,7 +581,7 @@ def frag(body, m, min_len=12):
 
 
 CRITERIA = [
-    ("law", "Соблюдение законодательства", check_law_compliance),
+    ("law", "Требования к кандидатам", check_law_compliance),
     ("benefits", "Бенефиты и преимущества работы", check_benefits_and_advantages),
     ("typography", "Орфография/типографика", check_orthography_typography),
     ("structure", "Нарушена структура", check_structure_and_format),
