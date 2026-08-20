@@ -269,8 +269,8 @@ BODY_CORE = """<div class="wrap">
     <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду рекрутмента"><option value="">Все тимлиды рекрутмента</option></select>
     <select id="fRecruiter" aria-label="Фильтр по рекрутеру"><option value="">Все рекрутеры</option></select>
     <select id="fCritical" aria-label="Фильтр по числу критических ошибок">
-      <option value="">Критические ошибки: все</option><option value="1">1+</option>
-      <option value="2">2+</option><option value="3">3+</option><option value="5">5+</option>
+      <option value="">Критические ошибки: все</option><option value="1">1</option>
+      <option value="2">2</option><option value="3">3</option><option value="5">5+</option>
     </select>
     <select id="fCriticalCriterion" aria-label="Фильтр критических ошибок по критерию">
       <option value="">Критические: все критерии</option>
@@ -562,13 +562,14 @@ function visible() {
   const t = document.getElementById('fTeam').value;
   const recruitmentLead = document.getElementById('fRecruitmentLead').value;
   const recruiter = document.getElementById('fRecruiter').value;
-  const criticalMin = +document.getElementById('fCritical').value || 0;
+  const criticalFilter = document.getElementById('fCritical').value;
   const criticalCriterion = document.getElementById('fCriticalCriterion').value;
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
     (!problemsOnly || v._reds > 0 || v._yellows > 0) &&
-    (!d || v.direction === d) && (!t || v.team === t) && (!recruitmentLead || RECRUITER_TO_LEAD[v.recruiter] === recruitmentLead) && (!recruiter || v.recruiter === recruiter) && (!criticalMin || v._reds >= criticalMin) &&
+    (!d || v.direction === d) && (!t || v.team === t) && (!recruitmentLead || RECRUITER_TO_LEAD[v.recruiter] === recruitmentLead) && (!recruiter || v.recruiter === recruiter) &&
+    (!criticalFilter || (criticalFilter === '5' ? v._reds >= 5 : v._reds === +criticalFilter)) &&
     (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
     (!hc || !v.closed));
   rows.sort((a, b) => {
