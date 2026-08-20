@@ -101,6 +101,16 @@ dialog.upddlg { width: min(680px, 92vw); }
 .status-hero.red .status-kicker, .status-hero.red .status-frequent li b { color: #b53636; }
 .status-hero.yellow .status-kicker, .status-hero.yellow .status-frequent li b { color: #8a6206; }
 .status-hero.green .status-kicker, .status-hero.green .status-frequent li b { color: #16734c; }
+:root[data-theme="dark"] .status-hero { color: #f0efec; border-color: rgba(255,255,255,.12); }
+:root[data-theme="dark"] .status-hero.red { background: linear-gradient(135deg, #3b2222, #30201f); }
+:root[data-theme="dark"] .status-hero.yellow { background: linear-gradient(135deg, #393015, #302914); }
+:root[data-theme="dark"] .status-hero.green { background: linear-gradient(135deg, #17352a, #152f28); }
+:root[data-theme="dark"] .status-hero.red .status-kicker, :root[data-theme="dark"] .status-hero.red .status-frequent li b { color: #ff9b92; }
+:root[data-theme="dark"] .status-hero.yellow .status-kicker, :root[data-theme="dark"] .status-hero.yellow .status-frequent li b { color: #f2c65f; }
+:root[data-theme="dark"] .status-hero.green .status-kicker, :root[data-theme="dark"] .status-hero.green .status-frequent li b { color: #76db98; }
+:root[data-theme="dark"] .status-hero .status-meta, :root[data-theme="dark"] .status-hero .status-frequent .label { color: #c4c1ba; }
+:root[data-theme="dark"] .status-hero .status-secondary { color: #f0efec; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.22); }
+:root[data-theme="dark"] .status-hero .status-frequent { border-color: rgba(255,255,255,.16); }
 .status-kicker { font-weight: 800; font-size: 12px; letter-spacing: .13em; text-transform: uppercase; opacity: .9; }
 .status-hero h2 { font-size: clamp(26px, 4vw, 42px); line-height: 1.13; letter-spacing: -.03em;
   margin: 12px 0 10px; max-width: 900px; }
@@ -146,13 +156,13 @@ th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: l
   white-space: nowrap; }
 tbody tr:last-child td { border-bottom: none; }
 th { position: sticky; top: 0; z-index: 2; background: var(--card); font-weight: 650;
-  font-size: 11.5px; letter-spacing: .02em; color: var(--ink-2);
+  font-size: 13px; letter-spacing: .01em; color: var(--ink-2);
   cursor: pointer; user-select: none; border-bottom: 1px solid var(--line);
   vertical-align: bottom; box-shadow: 0 1px 0 var(--line); }
 th:hover { color: var(--ink); }
 th.crit-col, td.crit-col { text-align: center; }
 td.crit-col { padding: 8px 4px; }
-th.crit-col { height: 330px; padding: 10px 4px 8px; }
+th.crit-col { height: 350px; padding: 10px 4px 8px; font-size: 13px; }
 th.crit-col .vh { writing-mode: vertical-rl; transform: rotate(180deg);
   display: inline-block; }
 th .arrow { font-size: 9px; color: var(--accent); }
@@ -264,9 +274,9 @@ BODY_CORE = """<div class="wrap">
 <div class="panel">
   <div class="filters">
     <input id="q" type="search" placeholder="Поиск по названию…" aria-label="Поиск по названию">
+    <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду рекрутмента"><option value="">Все тимлиды рекрутмента</option></select>
     <select id="fDir" aria-label="Фильтр по направлению"><option value="">Все направления</option></select>
     <select id="fTeam" aria-label="Фильтр по команде"><option value="">Все команды</option></select>
-    <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду рекрутмента"><option value="">Все тимлиды рекрутмента</option></select>
     <select id="fRecruiter" aria-label="Фильтр по рекрутеру"><option value="">Все рекрутеры</option></select>
     <select id="fCritical" aria-label="Фильтр по числу критических ошибок">
       <option value="">Критические ошибки: все</option><option value="1">1</option>
@@ -463,7 +473,23 @@ function updateRecruiterOptions() {
   list.forEach(x => sel.append(new Option(x, x)));
   if (list.includes(selected)) sel.value = selected;
 }
-updateRecruiterOptions();
+function updateOptionsForLead(id, allValues, getValue, emptyLabel) {
+  const sel = document.getElementById(id);
+  const selected = sel.value;
+  const lead = document.getElementById('fRecruitmentLead').value;
+  const values = lead ? [...new Set(DATA.vacancies
+    .filter(v => RECRUITER_TO_LEAD[v.recruiter] === lead)
+    .map(getValue).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru')) : allValues;
+  sel.replaceChildren(new Option(emptyLabel, ''));
+  values.forEach(x => sel.append(new Option(x, x)));
+  if (values.includes(selected)) sel.value = selected;
+}
+function updateLeadDependentOptions() {
+  updateRecruiterOptions();
+  updateOptionsForLead('fDir', dirs, v => v.direction, 'Все направления');
+  updateOptionsForLead('fTeam', teams, v => v.team, 'Все команды');
+}
+updateLeadDependentOptions();
 {
   const sel = document.getElementById('fCriticalCriterion');
   DATA.criteria.forEach(c => sel.append(new Option(c.label, c.key)));
@@ -587,7 +613,7 @@ function visible() {
 function resetFilters() {
   problemsOnly = false;
   for (const id of ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter']) document.getElementById(id).value = '';
-  updateRecruiterOptions();
+  updateLeadDependentOptions();
   document.getElementById('fCritical').value = '';
   document.getElementById('fCriticalCriterion').value = '';
   document.getElementById('fClosed').checked = false;
@@ -738,7 +764,7 @@ function render() {
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 ['q', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
-document.getElementById('fRecruitmentLead').addEventListener('input', () => { updateRecruiterOptions(); render(); });
+document.getElementById('fRecruitmentLead').addEventListener('input', () => { updateLeadDependentOptions(); render(); });
 document.getElementById('csvBtn').onclick = exportCsv;
 document.getElementById('xlsBtn').onclick = exportProblems;
 document.getElementById('expandBtn').onclick = () => {
@@ -748,7 +774,7 @@ document.getElementById('expandBtn').onclick = () => {
   render();
 };
 loadHash();
-updateRecruiterOptions();
+updateLeadDependentOptions();
 render();
 </script>
 """
