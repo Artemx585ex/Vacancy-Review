@@ -1,3 +1,7 @@
+
+new-chat
+outputs
+build_site.py
 #!/usr/bin/env python3
 """Собирает локальный сайт-отчёт по ревью вакансий из report.json.
 
@@ -163,6 +167,7 @@ th:hover { color: var(--ink); }
 th.crit-col, td.crit-col { text-align: center; }
 td.crit-col { padding: 8px 4px; }
 th.crit-col { height: 350px; padding: 10px 4px 8px; font-size: 13px; }
+th.crit-col { height: 275px; padding: 10px 4px 8px; font-size: 13px; }
 th.crit-col .vh { writing-mode: vertical-rl; transform: rotate(180deg);
   display: inline-block; }
 th .arrow { font-size: 9px; color: var(--accent); }
