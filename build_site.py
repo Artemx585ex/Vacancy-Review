@@ -117,7 +117,7 @@ dialog.upddlg { width: min(680px, 92vw); }
 .status-meta { font-size: 15px; color: var(--ink-2); max-width: 880px; }
 .status-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
 .status-actions button { border-radius: 14px; padding: 13px 18px; font: inherit; font-weight: 800; cursor: pointer; }
-.status-primary { color: var(--ink); background: #fff; border: 1px solid #fff; }
+.status-primary { color: #26231e; background: #fff; border: 1px solid #fff; }
 .status-secondary { color: var(--ink); background: rgba(255,255,255,.55); border: 1px solid rgba(70,60,40,.15); }
 .status-frequent { border-top: 1px solid rgba(70,60,40,.13); margin-top: 26px; padding-top: 17px; }
 .status-frequent .label { display: block; color: var(--ink-2); font-size: 13px; margin-bottom: 7px; }
@@ -810,7 +810,6 @@ def main() -> int:
 if __name__ == "__main__":
     import sys
     sys.exit(main())
-
 
 
 
