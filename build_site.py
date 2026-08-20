@@ -99,20 +99,23 @@ dialog.upddlg { width: min(680px, 92vw); }
   font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .status-tab.active { color: var(--ink); background: var(--card); box-shadow: var(--shadow); }
 .status-hero { margin-top: 12px; padding: 30px 34px; min-height: 294px; border-radius: 24px;
-  color: #fff; box-shadow: var(--shadow-up); }
-.status-hero.red { background: linear-gradient(135deg, #b91f32, #e43a42); }
-.status-hero.yellow { background: linear-gradient(135deg, #9a6500, #d29008); }
-.status-hero.green { background: linear-gradient(135deg, #087d65, #0eb18a); }
+  color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); }
+.status-hero.red { background: linear-gradient(135deg, #fce9e7, #f8dedd); border-color: #f2c9c5; }
+.status-hero.yellow { background: linear-gradient(135deg, #fff5df, #fceed1); border-color: #f2dfb6; }
+.status-hero.green { background: linear-gradient(135deg, #eaf7ef, #e2f2e9); border-color: #cde7d7; }
+.status-hero.red .status-kicker, .status-hero.red .status-frequent li b { color: #b53636; }
+.status-hero.yellow .status-kicker, .status-hero.yellow .status-frequent li b { color: #8a6206; }
+.status-hero.green .status-kicker, .status-hero.green .status-frequent li b { color: #16734c; }
 .status-kicker { font-weight: 800; font-size: 12px; letter-spacing: .13em; text-transform: uppercase; opacity: .9; }
 .status-hero h2 { font-size: clamp(26px, 4vw, 42px); line-height: 1.13; letter-spacing: -.03em;
   margin: 12px 0 10px; max-width: 900px; }
-.status-meta { font-size: 15px; opacity: .9; max-width: 880px; }
+.status-meta { font-size: 15px; color: var(--ink-2); max-width: 880px; }
 .status-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
 .status-actions button { border-radius: 14px; padding: 13px 18px; font: inherit; font-weight: 800; cursor: pointer; }
 .status-primary { color: var(--ink); background: #fff; border: 1px solid #fff; }
-.status-secondary { color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.56); }
-.status-frequent { border-top: 1px solid rgba(255,255,255,.35); margin-top: 26px; padding-top: 17px; }
-.status-frequent .label { display: block; opacity: .85; font-size: 13px; margin-bottom: 7px; }
+.status-secondary { color: var(--ink); background: rgba(255,255,255,.55); border: 1px solid rgba(70,60,40,.15); }
+.status-frequent { border-top: 1px solid rgba(70,60,40,.13); margin-top: 26px; padding-top: 17px; }
+.status-frequent .label { display: block; color: var(--ink-2); font-size: 13px; margin-bottom: 7px; }
 .status-frequent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
 .status-frequent li b { display: inline-block; min-width: 38px; font-size: 22px; }
 @media (max-width: 680px) { .status-hero { padding: 24px 20px; } }
