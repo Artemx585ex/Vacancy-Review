@@ -314,6 +314,7 @@ BODY_CORE = """<div class="wrap">
     <select id="fTier" aria-label="Фильтр по тиру"><option value="">Все тиры</option></select>
     <select id="fDir" aria-label="Фильтр по направлению"><option value="">Все направления</option></select>
     <select id="fTeam" aria-label="Фильтр по команде"><option value="">Все команды</option></select>
+    <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду рекрутмента"><option value="">Все тимлиды рекрутмента</option></select>
     <select id="fRecruiter" aria-label="Фильтр по рекрутеру"><option value="">Все рекрутеры</option></select>
     <select id="fCritical" aria-label="Фильтр по числу критических ошибок">
       <option value="">Критические ошибки: все</option><option value="1">1+</option>
@@ -489,10 +490,44 @@ themeBtn.onclick = () =>
 const dirs = [...new Set(DATA.vacancies.map(v => v.direction).filter(Boolean))].sort();
 const teams = [...new Set(DATA.vacancies.map(v => v.team).filter(Boolean))].sort();
 const recruiters = [...new Set(DATA.vacancies.map(v => v.recruiter).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
-for (const [id, list] of [['fDir', dirs], ['fTeam', teams], ['fRecruiter', recruiters]]) {
+const RECRUITER_TO_LEAD = {
+  'Абузярова Ирина': 'Людмила Бодрова', 'Базарова Аюна': 'Лидия Муравьёва',
+  'Барбашова Екатерина': 'Валерия Ильницкая', 'Баркова Ирина': 'Екатерина Миронова',
+  'Башкирова Анастасия': 'Екатерина Разгон', 'Гальчун Александра': 'Софья Присич',
+  'Ганюшкина Наталья': 'Лидия Муравьёва', 'Голева Ксения': 'Лидия Муравьёва',
+  'Домрачева Олеся': 'Светлана Валикова', 'Дюдькин Алексей': 'Светлана Валикова',
+  'Евелева Анна': 'Екатерина Миронова', 'Захарова Юлия': 'Людмила Бодрова',
+  'Калинина Яна': 'Софья Присич', 'Калуцкая Татьяна': 'Валерия Ильницкая',
+  'Камина Виолетта': 'Людмила Бодрова', 'Карпенко Полина': 'Валерия Ильницкая',
+  'Кононова Вера': 'Валерия Ильницкая', 'Куликова Дарья': 'Лидия Муравьёва',
+  'Лукашева Анна': 'Екатерина Миронова', 'Маринина Анна': 'Екатерина Разгон',
+  'Митрейкина Анастасия': 'Екатерина Миронова', 'Мыкольникова Кристина': 'Софья Присич',
+  'Неверова Алина': 'Людмила Бодрова', 'Новохатько Мария': 'Екатерина Миронова',
+  'Пасынкова Полина': 'Лидия Муравьёва', 'Рахимова Индира': 'Валерия Ильницкая',
+  'Савина Рената': 'Екатерина Разгон', 'Самойлова Мария': 'Лидия Муравьёва',
+  'Севастьянова Екатерина': 'Софья Присич', 'Скорых Екатерина': 'Лидия Муравьёва',
+  'Стригачева Дарья': 'Софья Присич', 'Терехова Анна': 'Софья Присич',
+  'Титова Виктория': 'Людмила Бодрова', 'Трусова Элина': 'Софья Присич',
+  'Ульмаскулова Эльвира': 'Светлана Валикова', 'Фазлыева Ирина': 'Светлана Валикова',
+  'Феоктистова Анна': 'Екатерина Разгон', 'Филиппова Мария': 'Екатерина Миронова',
+  'Черникова Ольга': 'Валерия Ильницкая', 'Шепталина Анастасия': 'Людмила Бодрова',
+  'Шмелева Анастасия': 'Софья Присич', 'Ярох Айгуль': 'Светлана Валикова',
+};
+const recruitmentLeads = [...new Set(recruiters.map(r => RECRUITER_TO_LEAD[r]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+for (const [id, list] of [['fDir', dirs], ['fTeam', teams], ['fRecruitmentLead', recruitmentLeads]]) {
   const sel = document.getElementById(id);
   list.forEach(x => sel.append(new Option(x, x)));
 }
+function updateRecruiterOptions() {
+  const sel = document.getElementById('fRecruiter');
+  const selected = sel.value;
+  const lead = document.getElementById('fRecruitmentLead').value;
+  const list = lead ? recruiters.filter(r => RECRUITER_TO_LEAD[r] === lead) : recruiters;
+  sel.replaceChildren(new Option('Все рекрутеры', ''));
+  list.forEach(x => sel.append(new Option(x, x)));
+  if (list.includes(selected)) sel.value = selected;
+}
+updateRecruiterOptions();
 {
   const sel = document.getElementById('fTier');
   TIERS.forEach(t => sel.append(new Option(`Тир ${t.n} — ${t.desc}`, t.n)));
@@ -503,7 +538,7 @@ for (const [id, list] of [['fDir', dirs], ['fTeam', teams], ['fRecruiter', recru
 }
 
 // состояние фильтров в URL-хеше
-const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'];
+const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'];
 function saveHash() {
   const p = new URLSearchParams();
   for (const id of FIELDS) {
@@ -627,6 +662,7 @@ function visible() {
   const ti = document.getElementById('fTier').value;
   const d = document.getElementById('fDir').value;
   const t = document.getElementById('fTeam').value;
+  const recruitmentLead = document.getElementById('fRecruitmentLead').value;
   const recruiter = document.getElementById('fRecruiter').value;
   const criticalMin = +document.getElementById('fCritical').value || 0;
   const criticalCriterion = document.getElementById('fCriticalCriterion').value;
@@ -634,7 +670,7 @@ function visible() {
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
     (!ti || v._tier === +ti) &&
-    (!d || v.direction === d) && (!t || v.team === t) && (!recruiter || v.recruiter === recruiter) && (!criticalMin || v._reds >= criticalMin) &&
+    (!d || v.direction === d) && (!t || v.team === t) && (!recruitmentLead || RECRUITER_TO_LEAD[v.recruiter] === recruitmentLead) && (!recruiter || v.recruiter === recruiter) && (!criticalMin || v._reds >= criticalMin) &&
     (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
     (!hc || !v.closed));
   rows.sort((a, b) => {
@@ -653,7 +689,8 @@ function visible() {
 }
 
 function resetFilters() {
-  for (const id of ['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter']) document.getElementById(id).value = '';
+  for (const id of ['q', 'fTier', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter']) document.getElementById(id).value = '';
+  updateRecruiterOptions();
   document.getElementById('fCritical').value = '';
   document.getElementById('fCriticalCriterion').value = '';
   document.getElementById('fClosed').checked = false;
@@ -806,6 +843,7 @@ function render() {
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 ['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
+document.getElementById('fRecruitmentLead').addEventListener('input', () => { updateRecruiterOptions(); render(); });
 document.getElementById('csvBtn').onclick = exportCsv;
 document.getElementById('xlsBtn').onclick = exportProblems;
 document.getElementById('expandBtn').onclick = () => {
@@ -815,6 +853,7 @@ document.getElementById('expandBtn').onclick = () => {
   render();
 };
 loadHash();
+updateRecruiterOptions();
 tiles();
 charts();
 render();
