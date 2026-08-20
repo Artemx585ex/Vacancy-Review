@@ -1,8 +1,3 @@
-
-new-chat
-outputs
-build_site.py
-#!/usr/bin/env python3
 """Собирает локальный сайт-отчёт по ревью вакансий из report.json.
 
 Результат — самодостаточный site/index.html (данные зашиты внутрь),
