@@ -92,53 +92,30 @@ dialog.upddlg { width: min(680px, 92vw); }
   box-shadow: var(--shadow); white-space: nowrap; }
 .theme-btn:hover { color: var(--ink); box-shadow: var(--shadow-up); }
 
-.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px; margin: 26px 0 14px; }
-.tile { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
-  padding: 18px 20px 14px; box-shadow: var(--shadow);
-  transition: transform .15s, box-shadow .15s; }
-.tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-up); }
-.tile b { display: block; font-size: 31px; font-weight: 800; letter-spacing: -.02em; }
-.tile b.crit { color: var(--crit); }
-.tile b.good { color: var(--good); }
-.tile b.warn { color: var(--warn); }
-.tile span { color: var(--ink-2); font-size: 12.5px; }
-.tile.coverage { grid-column: 1 / -1; }
-.tile.coverage b { font-size: 26px; }
-.tile .tile-title { display: block; margin-bottom: 8px; color: var(--ink-3); font-size: 12px; font-weight: 700; }
-.tile .tile-unit { display: block; margin-top: 1px; color: var(--ink-2); font-size: 14px; font-weight: 700; }
-.tile .tile-detail { display: block; margin-top: 6px; color: var(--ink-3); font-size: 12px; }
-@media (max-width: 680px) { .tiles { grid-template-columns: 1fr; } }
-
-.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 14px; margin-bottom: 18px; }
-.chart { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
-  padding: 18px 20px; box-shadow: var(--shadow); }
-.chart h3 { margin: 0 0 2px; font-size: 14.5px; font-weight: 750; }
-.chart .hint { color: var(--ink-3); font-size: 12px; margin-bottom: 14px; }
-@keyframes grow-y { from { transform: scaleY(0); } }
-@keyframes grow-x { from { transform: scaleX(0); } }
-.tierbars { display: flex; gap: 14px; align-items: flex-end; height: 150px; padding-top: 18px;
-  border-top: none; }
-.tierbar { flex: 1; display: flex; flex-direction: column; align-items: center;
-  background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
-.tierbar .val { font-size: 13px; font-weight: 750; margin-bottom: 4px; }
-.tierbar .bar { width: 70%; max-width: 46px; border-radius: 5px 5px 0 0;
-  transform-origin: bottom; animation: grow-y .5s ease-out; transition: filter .12s; }
-.tierbar:hover .bar, .tierbar.active .bar { filter: brightness(.85); }
-.tierbar .lbl { margin-top: 6px; font-size: 12px; color: var(--ink-2); font-weight: 650;
-  border-top: 1px solid var(--line); padding: 5px 10px 0; }
-.tierbar.active .lbl { color: var(--ink); }
-.hbars { display: grid; grid-template-columns: minmax(180px, 45%) minmax(0, 1fr); gap: 8px 10px;
-  align-items: center; }
-.hbars .hlbl { font-size: 12px; color: var(--ink-2); text-align: right;
-  white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
-.hbars .htrack { display: flex; align-items: center; gap: 8px; }
-.hbars .hbar { height: 12px; border-radius: 0 4px 4px 0; background: var(--crit);
-  min-width: 2px; transform-origin: left; animation: grow-x .5s ease-out; }
-.hbars .hval { font-size: 12px; font-weight: 700; white-space: nowrap;
-  font-variant-numeric: tabular-nums; }
-.hbars .hn { color: var(--ink-3); font-weight: 400; }
+.status-wrap { margin: 26px 0 18px; }
+.status-tabs { display: inline-flex; max-width: 100%; overflow-x: auto; padding: 4px; gap: 3px;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 16px; }
+.status-tab { border: 0; border-radius: 12px; padding: 9px 14px; background: transparent; color: var(--ink-2);
+  font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.status-tab.active { color: var(--ink); background: var(--card); box-shadow: var(--shadow); }
+.status-hero { margin-top: 12px; padding: 30px 34px; min-height: 294px; border-radius: 24px;
+  color: #fff; box-shadow: var(--shadow-up); }
+.status-hero.red { background: linear-gradient(135deg, #b91f32, #e43a42); }
+.status-hero.yellow { background: linear-gradient(135deg, #9a6500, #d29008); }
+.status-hero.green { background: linear-gradient(135deg, #087d65, #0eb18a); }
+.status-kicker { font-weight: 800; font-size: 12px; letter-spacing: .13em; text-transform: uppercase; opacity: .9; }
+.status-hero h2 { font-size: clamp(26px, 4vw, 42px); line-height: 1.13; letter-spacing: -.03em;
+  margin: 12px 0 10px; max-width: 900px; }
+.status-meta { font-size: 15px; opacity: .9; max-width: 880px; }
+.status-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+.status-actions button { border-radius: 14px; padding: 13px 18px; font: inherit; font-weight: 800; cursor: pointer; }
+.status-primary { color: var(--ink); background: #fff; border: 1px solid #fff; }
+.status-secondary { color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.56); }
+.status-frequent { border-top: 1px solid rgba(255,255,255,.35); margin-top: 26px; padding-top: 17px; }
+.status-frequent .label { display: block; opacity: .85; font-size: 13px; margin-bottom: 7px; }
+.status-frequent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.status-frequent li b { display: inline-block; min-width: 38px; font-size: 22px; }
+@media (max-width: 680px) { .status-hero { padding: 24px 20px; } }
 
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
   box-shadow: var(--shadow); padding: 14px 18px; margin-bottom: 16px; }
@@ -156,6 +133,7 @@ dialog.upddlg { width: min(680px, 92vw); }
   align-items: center; }
 
 .toolbar { display: flex; align-items: center; gap: 14px; margin: 0 4px 10px; flex-wrap: wrap; }
+.table-title { margin: 0; font-size: 22px; letter-spacing: -.02em; }
 .count { color: var(--ink-2); font-size: 12.5px; }
 .toolbar .grow { flex: 1; }
 .tbtn { background: var(--card); color: var(--ink-2); border: 1px solid var(--line);
@@ -180,12 +158,6 @@ th.crit-col { height: 330px; padding: 10px 4px 8px; }
 th.crit-col .vh { writing-mode: vertical-rl; transform: rotate(180deg);
   display: inline-block; }
 th .arrow { font-size: 9px; color: var(--accent); }
-td.tier-col, th.tier-col { text-align: center; }
-.tierpill { display: inline-block; min-width: 34px; padding: 2px 9px; border-radius: 20px;
-  font-size: 11.5px; font-weight: 800; }
-.tier1 { background: var(--t1-bg); color: var(--t1-txt); }
-.tier2 { background: var(--t2-bg); color: var(--t2-txt); }
-.tier3 { background: var(--t3-bg); color: var(--t3-txt); }
 td.vac { white-space: normal; min-width: 260px; }
 td.vac .chev { color: var(--ink-3); font-size: 10px; margin-right: 6px; }
 td.vac a { color: var(--ink); font-weight: 650; text-decoration: none; }
@@ -260,13 +232,11 @@ BODY_CORE = """<div class="wrap">
     <div class="brandline"><span class="dots"><i></i><i></i><i></i><i></i></span>
       <span class="eyebrow">career.avito.com</span></div>
     <h1>Ревью вакансий <span class="hl">по гайду</span></h1>
-    <div class="sub">Автоматическая проверка описаний вакансий по чек-листу гайда карьерного
-    сайта. Кликните по строке таблицы, чтобы раскрыть комментарии по каждому критерию.</div>
+    <div class="sub">Проверка описаний вакансий на соответствие гайду</div>
     <div class="upd" id="updline"></div>
   </div>
   <div class="head-btns">
     <button class="theme-btn" id="updBtn" type="button" hidden aria-haspopup="dialog">⟳ Обновить данные</button>
-    <button class="theme-btn" id="tierBtn" type="button" aria-haspopup="dialog">ⓘ Что такое тиры</button>
     <button class="theme-btn" id="criteriaBtn" type="button" aria-haspopup="dialog">ⓘ Критерии</button>
     <button class="theme-btn" id="themeBtn" type="button" aria-label="Переключить тему">◐ Тема</button>
   </div>
@@ -279,39 +249,23 @@ BODY_CORE = """<div class="wrap">
   <button class="close" type="button" id="updDlgClose">Закрыть</button>
 </dialog>
 
-<dialog class="tiers" id="tierDlg" aria-labelledby="tierDlgTitle">
-  <h3 id="tierDlgTitle">Как считаются тиры</h3>
-  <p>Тир — уровень приоритета исправления. Учитываются смысловые группы ошибок,
-  а не только проблемные критерии:</p>
-  <ul>
-    <li><span class="tierpill tier1">Т1</span>есть хотя бы 1 критичная ошибка или больше 7 некритичных замечаний, кроме типографики и пунктуации;</li>
-    <li><span class="tierpill tier2">Т2</span>от 4 до 7 некритичных ошибок;</li>
-    <li><span class="tierpill tier3">Т3</span>от 1 до 3 некритичных ошибок.</li>
-  </ul>
-  <p>Вакансии без ошибок выделяются отдельно и не относятся к тирам.</p>
-  <button class="close" type="button" id="tierDlgClose">Понятно</button>
-</dialog>
-
 <dialog class="tiers criteria-dlg" id="criteriaDlg" aria-labelledby="criteriaDlgTitle">
   <h3 id="criteriaDlgTitle">Критерии и критичность ошибок</h3>
-  <p>Правила соответствуют таблице «Тиры по критичности ошибок». Красный — критичная, жёлтый — некритичная ошибка.</p>
+  <p>Красный — критичная, жёлтый — некритичная ошибка.</p>
   <div class="criteria-list">
     <div class="criterion-def"><h4>Требования к кандидатам</h4><p><span class="badge crit">Критичная</span>Запрещённые слова; требования, нарушающие законодательство; дискриминирующие требования.<br><span class="badge warn">Некритичная</span>Нет конкретных требований, по которым можно корректно отказать кандидату.</p></div>
     <div class="criterion-def"><h4>Бенефиты и преимущества работы</h4><p><span class="badge crit">Критичная</span>Нет или изменена формулировка хотя бы одного из пяти фиксированных пунктов гайда.</p></div>
     <div class="criterion-def"><h4>Орфография и типографика</h4><p><span class="badge crit">Критичная</span>Название бренда или продукта не соответствует редполитике, например «Avito» вместо «Авито».<br><span class="badge warn">Некритичная</span>Написание терминов и другие ошибки из блока типографики.</p></div>
     <div class="criterion-def"><h4>Структура и оформление</h4><p><span class="badge crit">Критичная</span>Пропущен обязательный блок; дополнительные требования («желательно» и подобные) остались в обязательных требованиях, а не вынесены отдельно.<br><span class="badge warn">Некритичная</span>Ошибки оформления списков; нарушена логика названия; в Product &amp; Tech нет примеров будущих задач.</p></div>
-    <div class="criterion-def"><h4>Требуется уточнение</h4><p>Ошибки, которые найдены, но пока не отнесены к критичным или некритичным, нужны для внутреннего анализа и дообучения ИИ.</p></div>
   </div>
   <button class="close" type="button" id="criteriaDlgClose">Понятно</button>
 </dialog>
 
-<div class="tiles" id="tiles"></div>
-<div class="charts" id="charts"></div>
+<section class="status-wrap" id="statusPanel" aria-label="Статус проверки вакансий"></section>
 
 <div class="panel">
   <div class="filters">
     <input id="q" type="search" placeholder="Поиск по названию…" aria-label="Поиск по названию">
-    <select id="fTier" aria-label="Фильтр по тиру"><option value="">Все тиры</option></select>
     <select id="fDir" aria-label="Фильтр по направлению"><option value="">Все направления</option></select>
     <select id="fTeam" aria-label="Фильтр по команде"><option value="">Все команды</option></select>
     <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду рекрутмента"><option value="">Все тимлиды рекрутмента</option></select>
@@ -334,6 +288,7 @@ BODY_CORE = """<div class="wrap">
 </div>
 
 <div class="toolbar">
+  <h2 class="table-title" id="tableTitle">Проверенные вакансии</h2>
   <span class="count" id="count"></span>
   <span class="grow"></span>
   <button class="tbtn danger" id="delClosedBtn" type="button" hidden
@@ -348,8 +303,8 @@ BODY_CORE = """<div class="wrap">
 <table id="tbl"><thead><tr id="headrow"></tr></thead><tbody id="tbody"></tbody></table>
 </div>
 <footer>Сортировка — клик по заголовку столбца; по умолчанию самые проблемные сверху.
-Фильтры сохраняются в адресе страницы — ссылку можно шарить. Определения тиров и критериев —
-в кнопках «ⓘ Что такое тиры» и «ⓘ Критерии» наверху страницы.</footer>
+Фильтры сохраняются в адресе страницы — ссылку можно шарить. Определения критериев —
+в кнопке «ⓘ Критерии» наверху страницы.</footer>
 </div>
 
 <script id="data" type="application/json">__DATA__</script>
@@ -357,26 +312,15 @@ BODY_CORE = """<div class="wrap">
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const ICONS = { green: '✓', yellow: '!', red: '✕' };
 const ORDER = { red: 0, yellow: 1, green: 2 };
-const TIERS = [
-  { n: 1, color: '#d03b3b', desc: 'есть критичная ошибка или больше 7 некритичных, кроме типографики и пунктуации' },
-  { n: 2, color: '#d99a06', desc: '4–7 некритичных ошибок' },
-  { n: 3, color: '#0ca30c', desc: '1–3 некритичных ошибок' },
-];
-const countNonTypographyYellows = v =>
-  Object.entries(v.criteria).filter(([key]) => key !== 'typography')
-    .reduce((sum, [, criterion]) => sum + criterion.comments.filter(x => x.severity === 'yellow').length, 0);
-const tierOf = v => v._reds >= 1 || countNonTypographyYellows(v) > 7 ? 1 :
-  v._yellows >= 4 ? 2 : v._yellows >= 1 ? 3 : 0;
 const LOCAL = location.protocol === 'file:';
 
-let sortKey = '_tier', sortAsc = false, open = new Set();
+let sortKey = '_severity', sortAsc = false, open = new Set(), statusMode = '';
 
 const countSev = (v, sev) => Object.values(v.criteria)
   .reduce((s, c) => s + c.comments.filter(x => x.severity === sev).length, 0);
 DATA.vacancies.forEach(v => {
   v._reds = countSev(v, 'red');       // критические ошибки (красные замечания)
   v._yellows = countSev(v, 'yellow');
-  v._tier = tierOf(v);
 });
 
 // ---------- обновление данных ----------
@@ -463,12 +407,6 @@ function deleteVacancies(files) {
 }
 delBtn.onclick = () => deleteVacancies(closedFiles);
 
-// ---------- поп-ап про тиры ----------
-const tierDlg = document.getElementById('tierDlg');
-document.getElementById('tierBtn').onclick = () => tierDlg.showModal();
-document.getElementById('tierDlgClose').onclick = () => tierDlg.close();
-tierDlg.onclick = e => { if (e.target === tierDlg) tierDlg.close(); };
-
 // ---------- поп-ап с определениями критериев ----------
 const criteriaDlg = document.getElementById('criteriaDlg');
 document.getElementById('criteriaBtn').onclick = () => criteriaDlg.showModal();
@@ -529,16 +467,12 @@ function updateRecruiterOptions() {
 }
 updateRecruiterOptions();
 {
-  const sel = document.getElementById('fTier');
-  TIERS.forEach(t => sel.append(new Option(`Тир ${t.n} — ${t.desc}`, t.n)));
-}
-{
   const sel = document.getElementById('fCriticalCriterion');
   DATA.criteria.forEach(c => sel.append(new Option(c.label, c.key)));
 }
 
 // состояние фильтров в URL-хеше
-const FIELDS = ['q', 'fTier', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'];
+const FIELDS = ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'];
 function saveHash() {
   const p = new URLSearchParams();
   for (const id of FIELDS) {
@@ -546,7 +480,8 @@ function saveHash() {
     const val = el.type === 'checkbox' ? (el.checked ? '1' : '') : el.value;
     if (val) p.set(id, val);
   }
-  if (sortKey !== '_tier' || sortAsc) { p.set('sort', sortKey); if (sortAsc) p.set('asc', '1'); }
+  if (statusMode) p.set('status', statusMode);
+  if (sortKey !== '_severity' || sortAsc) { p.set('sort', sortKey); if (sortAsc) p.set('asc', '1'); }
   history.replaceState(null, '', p.size ? '#' + p : location.pathname);
 }
 function loadHash() {
@@ -558,82 +493,50 @@ function loadHash() {
   }
   if (p.has('sort')) sortKey = p.get('sort');
   if (p.has('asc')) sortAsc = true;
+  if (['critical', 'warning', 'clean'].includes(p.get('status'))) statusMode = p.get('status');
 }
 
-function tiles() {
+function frequent(mode) {
+  const severity = mode === 'critical' ? 'red' : 'yellow';
+  return DATA.criteria.map(c => ({ label: c.label, n: DATA.vacancies.filter(v =>
+    (v.criteria[c.key]?.comments ?? []).some(x => x.severity === severity)).length,
+  })).filter(x => x.n).sort((a, b) => b.n - a.n).slice(0, 2);
+}
+
+function statusPanel() {
   const n = DATA.vacancies.length;
-  const onlyCritical = DATA.vacancies.filter(v => v._reds > 0 && v._yellows === 0).length;
-  const criticalAndNoncritical = DATA.vacancies.filter(v => v._reds > 0 && v._yellows > 0).length;
-  const onlyNoncritical = DATA.vacancies.filter(v => v._reds === 0 && v._yellows > 0).length;
-  const clean = DATA.vacancies.filter(v => v._reds === 0 && v._yellows === 0).length;
-  const withCritical = onlyCritical + criticalAndNoncritical;
-  document.getElementById('tiles').innerHTML = `
-    <div class="tile coverage"><span class="tile-title">✓ Покрытие проверки</span><b>Все опубликованные вакансии проверены — ${n} из ${n}</b></div>
-    <div class="tile"><span class="tile-title">✕ Критичные замечания</span><b class="crit">${withCritical}</b><span class="tile-unit">вакансий</span><span class="tile-detail">только критичные — ${onlyCritical} · критичные + некритичные — ${criticalAndNoncritical}</span></div>
-    <div class="tile"><span class="tile-title">! Только некритичные замечания</span><b class="warn">${onlyNoncritical}</b><span class="tile-unit">вакансий</span></div>
-    <div class="tile"><span class="tile-title">✓ Без замечаний</span><b class="good">${clean}</b><span class="tile-unit">вакансий</span></div>`;
-}
-
-function charts() {
-  const box = document.getElementById('charts');
-  const byTier = TIERS.map(t => DATA.vacancies.filter(v => v._tier === t.n).length);
-  const maxT = Math.max(...byTier, 1);
-  const tierBars = TIERS.map((t, i) => `
-    <button class="tierbar" data-tier="${t.n}" type="button"
-      title="Тир ${t.n} (${t.desc}): ${byTier[i]} вакансий — клик фильтрует таблицу"
-      aria-label="Тир ${t.n}: ${byTier[i]} вакансий">
-      <span class="val">${byTier[i]}</span>
-      <span class="bar" style="height:${Math.max(3, byTier[i] / maxT * 104)}px; background:${t.color}"></span>
-      <span class="lbl">Т${t.n}</span>
-    </button>`).join('');
-  const redByCrit = DATA.criteria.map(c => ({
-    label: c.label,
-    n: DATA.vacancies.filter(v =>
-      (v.criteria[c.key]?.comments ?? []).some(x => x.severity === 'red')).length,
-  })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
-  const maxC = Math.max(...redByCrit.map(x => x.n), 1);
-  const critBars = redByCrit.map(x => `
-    <div class="hlbl" title="${x.label}">${x.label}</div>
-    <div class="htrack"><span class="hbar" style="width:${x.n / maxC * 100}%"></span>
-      <span class="hval">${x.n}</span></div>`).join('');
-  const byDir = dirs.map(d => {
-    const vs = DATA.vacancies.filter(v => v.direction === d);
-    return { d, n: vs.length, avg: vs.reduce((s, v) => s + v._reds, 0) / vs.length };
-  }).filter(x => x.n >= 2).sort((a, b) => b.avg - a.avg).slice(0, 8);
-  const maxD = Math.max(...byDir.map(x => x.avg), 1);
-  const dirBars = byDir.map(x => `
-    <div class="hlbl" title="${x.d}">${x.d}</div>
-    <div class="htrack"><span class="hbar" style="width:${x.avg / maxD * 100}%"></span>
-      <span class="hval">${x.avg.toFixed(1)} <span class="hn">· ${x.n} вак.</span></span></div>`).join('');
-
-  box.innerHTML = `
-    <div class="chart">
-      <h3>Распределение по тирам</h3>
-      <div class="hint">от высокого (Т1) к низкому (Т3) приоритету · клик по бару фильтрует таблицу ·
-        <button class="whatis" type="button" onclick="tierDlg.showModal()">что такое тиры?</button></div>
-      <div class="tierbars">${tierBars}</div>
-    </div>
-    <div class="chart">
-      <h3>Критические ошибки по критериям</h3>
-      <div class="hint">число вакансий с критичным нарушением по каждому критерию</div>
-      <div class="hbars">${critBars}</div>
-    </div>
-    <div class="chart">
-      <h3>Проблемные направления</h3>
-      <div class="hint">среднее число критических ошибок на вакансию · направления от 2 вакансий</div>
-      <div class="hbars">${dirBars}</div>
-    </div>`;
-  box.querySelectorAll('.tierbar').forEach(b => b.onclick = () => {
-    const sel = document.getElementById('fTier');
-    sel.value = sel.value === b.dataset.tier ? '' : b.dataset.tier;
-    render();
-  });
-}
-
-function markActiveTier() {
-  const cur = document.getElementById('fTier').value;
-  document.querySelectorAll('.tierbar').forEach(b =>
-    b.classList.toggle('active', b.dataset.tier === cur));
+  const critical = DATA.vacancies.filter(v => v._reds).length;
+  const warning = DATA.vacancies.filter(v => !v._reds && v._yellows).length;
+  const clean = n - critical - warning;
+  if (!statusMode) statusMode = critical ? 'critical' : warning ? 'warning' : 'clean';
+  const configs = {
+    critical: { cls: 'red', tab: 'Есть критические', kicker: 'Требуется внимание',
+      headline: `Критические ошибки найдены в ${critical} вакансиях`, count: critical,
+      detail: warning ? `В ${warning} вакансиях — только некритичные замечания` : 'Некритичных замечаний без критичных нет',
+      table: 'Вакансии с критическими ошибками', frequent: 'Главные критические ошибки' },
+    warning: { cls: 'yellow', tab: 'Только некритические', kicker: 'Критических ошибок нет',
+      headline: `В ${warning} вакансиях остались некритические ошибки`, count: warning,
+      detail: 'Критичных ошибок в этих вакансиях не найдено',
+      table: 'Вакансии с некритичными ошибками', frequent: 'Частые некритичные ошибки' },
+    clean: { cls: 'green', tab: 'Ошибок нет', kicker: 'Всё в порядке',
+      headline: clean === n ? `Все ${n} вакансий соответствуют гайду` : `${clean} вакансий соответствуют гайду`, count: clean,
+      detail: 'Критичных и некритичных ошибок не найдено',
+      table: 'Вакансии без замечаний', frequent: 'Результат проверки' },
+  };
+  const c = configs[statusMode];
+  const items = statusMode === 'clean'
+    ? `<ul><li><b>${clean}</b> вакансий прошли все проверки</li><li><b>0</b> ошибок найдено</li></ul>`
+    : `<ul>${frequent(statusMode).map(x => `<li><b>${x.n}</b> ${esc(x.label)}</li>`).join('') || '<li>Замечаний этого типа нет</li>'}</ul>`;
+  const tab = mode => `<button class="status-tab ${mode === statusMode ? 'active' : ''}" data-status="${mode}" type="button">${configs[mode].tab}</button>`;
+  document.getElementById('statusPanel').innerHTML = `<div class="status-tabs">${tab('critical')}${tab('warning')}${tab('clean')}</div>
+    <div class="status-hero ${c.cls}"><div class="status-kicker">${c.kicker}</div>
+      <h2>${c.headline}</h2><div class="status-meta">Проверено ${n} из ${n} вакансий · ${c.detail} · обновлено ${DATA.generated_at || 'недавно'}</div>
+      <div class="status-actions"><button class="status-primary" id="showStatus" type="button">${statusMode === 'clean' ? 'Посмотреть все вакансии' : `Показать ${c.count} вакансий`}</button>
+      <button class="status-secondary" id="showCriteria" type="button">${statusMode === 'clean' ? 'Критерии проверки' : 'Как исправлять ошибки'}</button></div>
+      <div class="status-frequent"><span class="label">${c.frequent}</span>${items}</div></div>`;
+  document.querySelectorAll('.status-tab').forEach(b => b.onclick = () => { statusMode = b.dataset.status; render(); });
+  document.getElementById('showStatus').onclick = () => { document.getElementById('tbl').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  document.getElementById('showCriteria').onclick = () => criteriaDlg.showModal();
 }
 
 function header() {
@@ -651,7 +554,6 @@ function header() {
     th.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } };
     tr.append(th);
   };
-  mk('_tier', 'Тир', 'tier-col', 'Тир приоритета: Т1 — высокий, Т3 — низкий');
   mk('title', 'Вакансия');
   mk('recruiter', 'Рекрутер', 'recruiter-col', 'Рекрутер, указанный в сотруднической версии карьерного сайта');
   DATA.criteria.forEach(c => mk(c.key, c.label, 'crit-col'));
@@ -659,7 +561,6 @@ function header() {
 
 function visible() {
   const q = document.getElementById('q').value.toLowerCase();
-  const ti = document.getElementById('fTier').value;
   const d = document.getElementById('fDir').value;
   const t = document.getElementById('fTeam').value;
   const recruitmentLead = document.getElementById('fRecruitmentLead').value;
@@ -669,7 +570,10 @@ function visible() {
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
-    (!ti || v._tier === +ti) &&
+    (!statusMode ||
+      (statusMode === 'critical' && v._reds > 0) ||
+      (statusMode === 'warning' && v._reds === 0 && v._yellows > 0) ||
+      (statusMode === 'clean' && v._reds === 0 && v._yellows === 0)) &&
     (!d || v.direction === d) && (!t || v.team === t) && (!recruitmentLead || RECRUITER_TO_LEAD[v.recruiter] === recruitmentLead) && (!recruiter || v.recruiter === recruiter) && (!criticalMin || v._reds >= criticalMin) &&
     (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
     (!hc || !v.closed));
@@ -677,10 +581,7 @@ function visible() {
     let x, y;
     if (sortKey === 'title') { x = a.title; y = b.title; }
     else if (sortKey === 'recruiter') { x = a.recruiter || 'яяя'; y = b.recruiter || 'яяя'; }
-    else if (sortKey === '_tier') {
-      x = (a._tier || 4) * 1e6 - a._reds * 1000 - a._yellows;
-      y = (b._tier || 4) * 1e6 - b._reds * 1000 - b._yellows;
-    }
+    else if (sortKey === '_severity') { x = -(a._reds * 1e6 + a._yellows); y = -(b._reds * 1e6 + b._yellows); }
     else { x = ORDER[a.criteria[sortKey]?.status ?? 'green']; y = ORDER[b.criteria[sortKey]?.status ?? 'green']; }
     const cmp = typeof x === 'string' ? x.localeCompare(y, 'ru') : x - y;
     return sortAsc ? -cmp : cmp;
@@ -689,7 +590,7 @@ function visible() {
 }
 
 function resetFilters() {
-  for (const id of ['q', 'fTier', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter']) document.getElementById(id).value = '';
+  for (const id of ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter']) document.getElementById(id).value = '';
   updateRecruiterOptions();
   document.getElementById('fCritical').value = '';
   document.getElementById('fCriticalCriterion').value = '';
@@ -709,11 +610,11 @@ function downloadCsv(lines, name) {
 
 function exportCsv() {
   const rows = visible();
-  const head = ['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Локация', 'Рекрутер', 'Опубликована',
+  const head = ['Вакансия', 'URL', 'Направление', 'Команда', 'Локация', 'Рекрутер', 'Опубликована',
     'Критических ошибок', 'Некритичных ошибок', ...DATA.criteria.map(c => c.label)];
   const lines = [head.map(csvCell).join(';')];
   rows.forEach(v => lines.push([
-    'Т' + v._tier, v.title, v.url, v.direction, v.team, v.location, v.recruiter, v.published,
+    v.title, v.url, v.direction, v.team, v.location, v.recruiter, v.published,
     v._reds, v._yellows,
     ...DATA.criteria.map(c => v.criteria[c.key]?.status ?? 'green'),
   ].map(csvCell).join(';')));
@@ -724,11 +625,11 @@ function exportProblems() {
   const rows = visible();
   const label = {};
   DATA.criteria.forEach(c => label[c.key] = c.label);
-  const lines = [['Тир', 'Вакансия', 'URL', 'Направление', 'Команда', 'Критерий', 'Статус',
+  const lines = [['Вакансия', 'URL', 'Направление', 'Команда', 'Критерий', 'Статус',
     'Ошибка', 'Цитата', 'Ссылка с подсветкой'].map(csvCell).join(';')];
   rows.forEach(v => Object.entries(v.criteria).forEach(([k, c]) =>
     c.comments.forEach(x => (x.details ?? [x]).forEach(d => lines.push([
-      'Т' + v._tier, v.title, v.url, v.direction, v.team, label[k],
+      v.title, v.url, v.direction, v.team, label[k],
       x.severity === 'red' ? 'критичная' : 'некритичная',
       x.details ? `${x.text}: ${d.text}` : x.text, d.quote ?? '',
       d.quote ? highlightUrl(v, d) : '',
@@ -742,9 +643,11 @@ const highlightUrl = (v, x) =>
 
 function render() {
   header();
-  markActiveTier();
   saveHash();
+  statusPanel();
   const rows = visible();
+  const titles = { critical: 'Вакансии с критическими ошибками', warning: 'Вакансии с некритичными ошибками', clean: 'Вакансии без замечаний' };
+  document.getElementById('tableTitle').textContent = titles[statusMode] || 'Проверенные вакансии';
   document.getElementById('count').textContent =
     `Показано ${rows.length} из ${DATA.vacancies.length}`;
   const allOpen = rows.length && rows.every(v => open.has(v.file));
@@ -753,7 +656,7 @@ function render() {
   tb.innerHTML = '';
   if (!rows.length) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="empty-state" colspan="${DATA.criteria.length + 3}">
+    tr.innerHTML = `<td class="empty-state" colspan="${DATA.criteria.length + 2}">
       По этим фильтрам ничего не нашлось.<br><button type="button">Сбросить фильтры</button></td>`;
     tr.querySelector('button').onclick = resetFilters;
     tb.append(tr);
@@ -776,11 +679,7 @@ function render() {
       (v.closed ? `<span class="badge closed" title="Вакансии уже нет на career.avito.com">не на сайте</span>` : '') +
       (v._reds ? '<span class="badge crit">есть критичные</span>' : '') +
       (v._yellows ? '<span class="badge warn">есть некритичные</span>' : '');
-    const tier = v._tier ? `<span class="tierpill tier${v._tier}"
-        title="Тир ${v._tier}: ${TIERS[v._tier - 1].desc}">Т${v._tier}</span>` :
-        '<span class="chip green" title="Ошибок нет">✓</span>';
-    tr.innerHTML = `<td class="tier-col">${tier}</td>
-      <td class="vac"><span class="chev">${open.has(v.file) ? '▼' : '▶'}</span><a href="${v.url}"
+    tr.innerHTML = `<td class="vac"><span class="chev">${open.has(v.file) ? '▼' : '▶'}</span><a href="${v.url}"
         target="_blank" rel="noopener" title="Открыть вакансию на career.avito.com">${v.title}</a>
       <span class="badges">${badges}</span>
       <div class="meta">${[v.direction, v.team, v.location].filter(Boolean).join(' · ')}</div></td>
@@ -830,7 +729,7 @@ function render() {
         .filter(Boolean).join(' · ');
       const delOne = (v.closed && SERVED)
         ? ' <button class="tbtn danger delone" type="button">🗑 Удалить из отчёта</button>' : '';
-      dtr.innerHTML = `<td colspan="${DATA.criteria.length + 3}"><div class="detail-inner">
+      dtr.innerHTML = `<td colspan="${DATA.criteria.length + 2}"><div class="detail-inner">
         <div class="detail-head">${meta}${delOne}</div>
         <div class="detail-grid">${cards}</div></div></td>`;
       const delBtnOne = dtr.querySelector('.delone');
@@ -841,7 +740,7 @@ function render() {
 }
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-['q', 'fTier', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
+['q', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 document.getElementById('fRecruitmentLead').addEventListener('input', () => { updateRecruiterOptions(); render(); });
 document.getElementById('csvBtn').onclick = exportCsv;
@@ -854,8 +753,6 @@ document.getElementById('expandBtn').onclick = () => {
 };
 loadHash();
 updateRecruiterOptions();
-tiles();
-charts();
 render();
 </script>
 """
