@@ -93,11 +93,6 @@ dialog.upddlg { width: min(680px, 92vw); }
 .theme-btn:hover { color: var(--ink); box-shadow: var(--shadow-up); }
 
 .status-wrap { margin: 26px 0 18px; }
-.status-tabs { display: inline-flex; max-width: 100%; overflow-x: auto; padding: 4px; gap: 3px;
-  background: var(--card-2); border: 1px solid var(--line); border-radius: 16px; }
-.status-tab { border: 0; border-radius: 12px; padding: 9px 14px; background: transparent; color: var(--ink-2);
-  font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; }
-.status-tab.active { color: var(--ink); background: var(--card); box-shadow: var(--shadow); }
 .status-hero { margin-top: 12px; padding: 30px 34px; min-height: 294px; border-radius: 24px;
   color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); }
 .status-hero.red { background: linear-gradient(135deg, #fce9e7, #f8dedd); border-color: #f2c9c5; }
@@ -317,7 +312,7 @@ const ICONS = { green: '✓', yellow: '!', red: '✕' };
 const ORDER = { red: 0, yellow: 1, green: 2 };
 const LOCAL = location.protocol === 'file:';
 
-let sortKey = '_severity', sortAsc = false, open = new Set(), statusMode = '';
+let sortKey = '_severity', sortAsc = false, open = new Set(), problemsOnly = false;
 
 const countSev = (v, sev) => Object.values(v.criteria)
   .reduce((s, c) => s + c.comments.filter(x => x.severity === sev).length, 0);
@@ -483,7 +478,6 @@ function saveHash() {
     const val = el.type === 'checkbox' ? (el.checked ? '1' : '') : el.value;
     if (val) p.set(id, val);
   }
-  if (statusMode) p.set('status', statusMode);
   if (sortKey !== '_severity' || sortAsc) { p.set('sort', sortKey); if (sortAsc) p.set('asc', '1'); }
   history.replaceState(null, '', p.size ? '#' + p : location.pathname);
 }
@@ -496,7 +490,6 @@ function loadHash() {
   }
   if (p.has('sort')) sortKey = p.get('sort');
   if (p.has('asc')) sortAsc = true;
-  if (['critical', 'warning', 'clean'].includes(p.get('status'))) statusMode = p.get('status');
 }
 
 function frequent(mode) {
@@ -511,7 +504,7 @@ function statusPanel() {
   const critical = DATA.vacancies.filter(v => v._reds).length;
   const warning = DATA.vacancies.filter(v => !v._reds && v._yellows).length;
   const clean = n - critical - warning;
-  if (!statusMode) statusMode = critical ? 'critical' : warning ? 'warning' : 'clean';
+  const mode = critical ? 'critical' : warning ? 'warning' : 'clean';
   const configs = {
     critical: { cls: 'red', tab: 'Есть критические', kicker: 'Требуется внимание',
       headline: `Критические ошибки найдены в ${critical} вакансиях`, count: critical,
@@ -526,19 +519,20 @@ function statusPanel() {
       detail: 'Критичных и некритичных ошибок не найдено',
       table: 'Вакансии без замечаний', frequent: 'Результат проверки' },
   };
-  const c = configs[statusMode];
-  const items = statusMode === 'clean'
+  const c = configs[mode];
+  const items = mode === 'clean'
     ? `<ul><li><b>${clean}</b> вакансий прошли все проверки</li><li><b>0</b> ошибок найдено</li></ul>`
-    : `<ul>${frequent(statusMode).map(x => `<li><b>${x.n}</b> ${esc(x.label)}</li>`).join('') || '<li>Замечаний этого типа нет</li>'}</ul>`;
-  const tab = mode => `<button class="status-tab ${mode === statusMode ? 'active' : ''}" data-status="${mode}" type="button">${configs[mode].tab}</button>`;
-  document.getElementById('statusPanel').innerHTML = `<div class="status-tabs">${tab('critical')}${tab('warning')}${tab('clean')}</div>
-    <div class="status-hero ${c.cls}"><div class="status-kicker">${c.kicker}</div>
+    : `<ul>${frequent(mode).map(x => `<li><b>${x.n}</b> ${esc(x.label)}</li>`).join('') || '<li>Замечаний этого типа нет</li>'}</ul>`;
+  document.getElementById('statusPanel').innerHTML = `<div class="status-hero ${c.cls}"><div class="status-kicker">${c.kicker}</div>
       <h2>${c.headline}</h2><div class="status-meta">Проверено ${n} из ${n} вакансий · ${c.detail} · обновлено ${DATA.generated_at || 'недавно'}</div>
-      <div class="status-actions"><button class="status-primary" id="showStatus" type="button">${statusMode === 'clean' ? 'Посмотреть все вакансии' : `Показать ${c.count} вакансий`}</button>
-      <button class="status-secondary" id="showCriteria" type="button">${statusMode === 'clean' ? 'Критерии проверки' : 'Как исправлять ошибки'}</button></div>
+      <div class="status-actions"><button class="status-primary" id="showStatus" type="button">${mode === 'critical' ? 'Показать вакансии с ошибками' : mode === 'clean' ? 'Посмотреть все вакансии' : `Показать ${c.count} вакансий`}</button>
+      <button class="status-secondary" id="showCriteria" type="button">${mode === 'clean' ? 'Критерии проверки' : 'Как исправлять ошибки'}</button></div>
       <div class="status-frequent"><span class="label">${c.frequent}</span>${items}</div></div>`;
-  document.querySelectorAll('.status-tab').forEach(b => b.onclick = () => { statusMode = b.dataset.status; render(); });
-  document.getElementById('showStatus').onclick = () => { document.getElementById('tbl').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  document.getElementById('showStatus').onclick = () => {
+    if (mode === 'critical') { problemsOnly = true; document.getElementById('fCritical').value = ''; }
+    render();
+    requestAnimationFrame(() => document.getElementById('tbl').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
   document.getElementById('showCriteria').onclick = () => criteriaDlg.showModal();
 }
 
@@ -573,10 +567,7 @@ function visible() {
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
-    (!statusMode ||
-      (statusMode === 'critical' && v._reds > 0) ||
-      (statusMode === 'warning' && v._reds === 0 && v._yellows > 0) ||
-      (statusMode === 'clean' && v._reds === 0 && v._yellows === 0)) &&
+    (!problemsOnly || v._reds > 0 || v._yellows > 0) &&
     (!d || v.direction === d) && (!t || v.team === t) && (!recruitmentLead || RECRUITER_TO_LEAD[v.recruiter] === recruitmentLead) && (!recruiter || v.recruiter === recruiter) && (!criticalMin || v._reds >= criticalMin) &&
     (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
     (!hc || !v.closed));
@@ -593,6 +584,7 @@ function visible() {
 }
 
 function resetFilters() {
+  problemsOnly = false;
   for (const id of ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter']) document.getElementById(id).value = '';
   updateRecruiterOptions();
   document.getElementById('fCritical').value = '';
@@ -649,8 +641,8 @@ function render() {
   saveHash();
   statusPanel();
   const rows = visible();
-  const titles = { critical: 'Вакансии с критическими ошибками', warning: 'Вакансии с некритичными ошибками', clean: 'Вакансии без замечаний' };
-  document.getElementById('tableTitle').textContent = titles[statusMode] || 'Проверенные вакансии';
+  document.getElementById('tableTitle').textContent = problemsOnly ? 'Вакансии с ошибками' :
+    document.getElementById('fCritical').value ? 'Вакансии с критическими ошибками' : 'Все проверенные вакансии';
   document.getElementById('count').textContent =
     `Показано ${rows.length} из ${DATA.vacancies.length}`;
   const allOpen = rows.length && rows.every(v => open.has(v.file));
