@@ -94,7 +94,9 @@ dialog.upddlg { width: min(680px, 92vw); }
 
 .status-wrap { margin: 26px 0 18px; }
 .status-hero { margin-top: 12px; padding: 30px 34px; min-height: 294px; border-radius: 24px;
-  color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); }
+  color: var(--ink); box-shadow: var(--shadow); border: 1px solid var(--line); display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 360px); column-gap: 34px; }
+.status-main { min-width: 0; }
 .status-hero.red { background: linear-gradient(135deg, #fce9e7, #f8dedd); border-color: #f2c9c5; }
 .status-hero.yellow { background: linear-gradient(135deg, #fff5df, #fceed1); border-color: #f2dfb6; }
 .status-hero.green { background: linear-gradient(135deg, #eaf7ef, #e2f2e9); border-color: #cde7d7; }
@@ -119,15 +121,29 @@ dialog.upddlg { width: min(680px, 92vw); }
 .status-actions :is(button, a) { border-radius: 14px; padding: 13px 18px; font: inherit; font-weight: 800; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
 .status-primary { color: #26231e; background: #fff; border: 1px solid #fff; }
 .status-secondary { color: var(--ink); background: rgba(255,255,255,.55); border: 1px solid rgba(70,60,40,.15); }
-.status-frequent { border-top: 1px solid rgba(70,60,40,.13); margin-top: 26px; padding-top: 17px; }
+.status-frequent { border-top: 1px solid rgba(70,60,40,.13); margin-top: 26px; padding-top: 17px; grid-column: 1 / -1; }
 .status-frequent .label { display: block; color: var(--ink-2); font-size: 13px; margin-bottom: 7px; }
 .status-frequent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
 .status-frequent li b { display: inline-block; min-width: 38px; font-size: 22px; }
+.status-owners { align-self: start; border-left: 1px solid rgba(70,60,40,.15); padding-left: 28px; }
+.status-owners .label { display: block; color: var(--ink-2); font-size: 13px; margin-bottom: 9px; }
+.owner-list { display: grid; gap: 7px; }
+.owner-filter { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  padding: 8px 10px; border: 1px solid rgba(70,60,40,.14); border-radius: 10px; background: rgba(255,255,255,.34);
+  color: var(--ink); font: inherit; font-weight: 650; text-align: left; cursor: pointer; }
+.owner-filter:hover { background: rgba(255,255,255,.65); border-color: rgba(70,60,40,.28); }
+.owner-filter .owner-count { flex: 0 0 auto; color: var(--crit); font-size: 12px; font-weight: 800; }
+.status-owners .owner-more { margin-top: 8px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; cursor: pointer; }
+:root[data-theme="dark"] .status-owners { border-color: rgba(255,255,255,.16); }
+:root[data-theme="dark"] .owner-filter { color: var(--ink); background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); }
+:root[data-theme="dark"] .owner-filter:hover { background: rgba(255,255,255,.12); }
+:root[data-theme="dark"] .owner-filter .owner-count { color: #ff9b92; }
 .info-btn { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-left: 5px;
   padding: 0; border: 1px solid currentColor; border-radius: 50%; background: transparent; color: inherit;
   font: 700 11px/1 inherit; cursor: pointer; vertical-align: 1px; opacity: .78; }
 .info-btn:hover { opacity: 1; background: rgba(255,255,255,.36); }
 th .info-btn { vertical-align: 0; transform: rotate(180deg); }
+@media (max-width: 760px) { .status-hero { grid-template-columns: 1fr; row-gap: 22px; } .status-owners { border-left: 0; border-top: 1px solid rgba(70,60,40,.13); padding: 17px 0 0; } }
 @media (max-width: 680px) { .status-hero { padding: 24px 20px; } }
 
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
@@ -331,7 +347,7 @@ const ICONS = { green: '✓', yellow: '!', red: '✕' };
 const ORDER = { red: 0, yellow: 1, green: 2 };
 const LOCAL = location.protocol === 'file:';
 
-let sortKey = '_severity', sortAsc = false, open = new Set(), problemsOnly = false;
+let sortKey = '_severity', sortAsc = false, open = new Set(), problemsOnly = false, ownersExpanded = false;
 
 const countSev = (v, sev) => Object.values(v.criteria)
   .reduce((s, c) => s + c.comments.filter(x => x.severity === sev).length, 0);
@@ -544,6 +560,24 @@ function frequent(mode) {
   })).filter(x => x.n).sort((a, b) => b.n - a.n).slice(0, 2);
 }
 
+function ownersWithIssues(mode) {
+  const relevant = DATA.vacancies.filter(v => mode === 'critical' ? v._reds > 0 : v._reds === 0 && v._yellows > 0);
+  const counts = new Map();
+  relevant.forEach(v => {
+    const lead = RECRUITER_TO_LEAD[v.recruiter] || '';
+    counts.set(lead, (counts.get(lead) || 0) + 1);
+  });
+  return [...counts].map(([lead, count]) => ({ lead, count }))
+    .sort((a, b) => b.count - a.count || a.lead.localeCompare(b.lead, 'ru'));
+}
+function vacancyWord(n) {
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) return 'вакансий';
+  if (n % 10 === 1) return 'вакансия';
+  if (n % 10 >= 2 && n % 10 <= 4) return 'вакансии';
+  return 'вакансий';
+}
+
 function statusPanel() {
   const n = DATA.vacancies.length;
   const critical = DATA.vacancies.filter(v => v._reds).length;
@@ -565,13 +599,22 @@ function statusPanel() {
       table: 'Вакансии без замечаний', frequent: 'Результат проверки' },
   };
   const c = configs[mode];
+  const allOwners = mode === 'clean' ? [] : ownersWithIssues(mode);
+  const shownOwners = ownersExpanded ? allOwners : allOwners.slice(0, 4);
+  const ownerPanel = allOwners.length ? `<aside class="status-owners"><span class="label">У кого есть ошибки</span>
+    <div class="owner-list">${shownOwners.map(x => x.lead
+      ? `<button class="owner-filter" type="button" data-lead="${esc(x.lead)}"><span>${esc(x.lead)}</span><span class="owner-count">${x.count} ${vacancyWord(x.count)}</span></button>`
+      : `<div class="owner-filter" aria-label="Для ${x.count} вакансий тимлид не указан"><span>Тимлид не указан</span><span class="owner-count">${x.count} ${vacancyWord(x.count)}</span></div>`).join('')}</div>
+    ${allOwners.length > 4 ? `<button class="owner-more" id="ownersMore" type="button">${ownersExpanded ? 'Свернуть список' : `Показать всех (${allOwners.length})`}</button>` : ''}
+    </aside>` : '';
   const items = mode === 'clean'
     ? `<ul><li><b>${clean}</b> вакансий прошли все проверки</li><li><b>0</b> ошибок найдено</li></ul>`
     : `<ul>${frequent(mode).map(x => `<li><b>${x.n}</b> ${esc(x.label)}<button class="info-btn criterion-info" type="button" data-key="${esc(x.key)}" data-label="${esc(x.label)}" aria-label="Что проверяет критерий ${esc(x.label)}">i</button></li>`).join('') || '<li>Замечаний этого типа нет</li>'}</ul>`;
-  document.getElementById('statusPanel').innerHTML = `<div class="status-hero ${c.cls}"><div class="status-kicker">${c.kicker}</div>
+  document.getElementById('statusPanel').innerHTML = `<div class="status-hero ${c.cls}"><div class="status-main"><div class="status-kicker">${c.kicker}</div>
       <h2>${c.headline}</h2><div class="status-meta">Проверено ${n} из ${n} вакансий · ${c.detail} · обновлено ${DATA.generated_at || 'недавно'}</div>
       <div class="status-actions"><button class="status-primary" id="showStatus" type="button">${mode === 'critical' ? 'Показать вакансии с ошибками' : mode === 'clean' ? 'Посмотреть все вакансии' : `Показать ${c.count} вакансий`}</button>
-      <a class="status-secondary" href="https://llm.k.avito.ru/chat/6a8b721d24464f05bd715d71" target="_blank" rel="noopener">Помощник по исправлению ошибок ↗</a></div>
+      <a class="status-secondary" href="https://llm.k.avito.ru/chat/6a8b721d24464f05bd715d71" target="_blank" rel="noopener">Помощник по исправлению ошибок ↗</a></div></div>
+      ${ownerPanel}
       <div class="status-frequent"><span class="label">${c.frequent}</span>${items}</div></div>`;
   document.getElementById('showStatus').onclick = () => {
     if (mode === 'critical') { problemsOnly = true; document.getElementById('fStatus').value = ''; }
@@ -580,6 +623,16 @@ function statusPanel() {
   };
   document.querySelectorAll('.criterion-info').forEach(btn => btn.onclick = () =>
     showCriterionInfo(btn.dataset.key, btn.dataset.label));
+  document.querySelectorAll('.owner-filter[data-lead]').forEach(btn => btn.onclick = () => {
+    problemsOnly = false;
+    document.getElementById('fRecruitmentLead').value = btn.dataset.lead;
+    document.getElementById('fStatus').value = mode;
+    updateLeadDependentOptions();
+    render();
+    requestAnimationFrame(() => document.getElementById('tbl').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  });
+  const moreBtn = document.getElementById('ownersMore');
+  if (moreBtn) moreBtn.onclick = () => { ownersExpanded = !ownersExpanded; statusPanel(); };
 }
 
 function header() {
