@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Собирает локальный сайт-отчёт по ревью вакансий из report.json.
 
 Результат — самодостаточный site/index.html (данные зашиты внутрь),
@@ -115,13 +116,18 @@ dialog.upddlg { width: min(680px, 92vw); }
   margin: 12px 0 10px; max-width: 900px; }
 .status-meta { font-size: 15px; color: var(--ink-2); max-width: 880px; }
 .status-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
-.status-actions button { border-radius: 14px; padding: 13px 18px; font: inherit; font-weight: 800; cursor: pointer; }
+.status-actions :is(button, a) { border-radius: 14px; padding: 13px 18px; font: inherit; font-weight: 800; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
 .status-primary { color: #26231e; background: #fff; border: 1px solid #fff; }
 .status-secondary { color: var(--ink); background: rgba(255,255,255,.55); border: 1px solid rgba(70,60,40,.15); }
 .status-frequent { border-top: 1px solid rgba(70,60,40,.13); margin-top: 26px; padding-top: 17px; }
 .status-frequent .label { display: block; color: var(--ink-2); font-size: 13px; margin-bottom: 7px; }
 .status-frequent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
 .status-frequent li b { display: inline-block; min-width: 38px; font-size: 22px; }
+.info-btn { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-left: 5px;
+  padding: 0; border: 1px solid currentColor; border-radius: 50%; background: transparent; color: inherit;
+  font: 700 11px/1 inherit; cursor: pointer; vertical-align: 1px; opacity: .78; }
+.info-btn:hover { opacity: 1; background: rgba(255,255,255,.36); }
+th .info-btn { vertical-align: 0; transform: rotate(180deg); }
 @media (max-width: 680px) { .status-hero { padding: 24px 20px; } }
 
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
@@ -161,7 +167,6 @@ th { position: sticky; top: 0; z-index: 2; background: var(--card); font-weight:
 th:hover { color: var(--ink); }
 th.crit-col, td.crit-col { text-align: center; }
 td.crit-col { padding: 8px 4px; }
-th.crit-col { height: 350px; padding: 10px 4px 8px; font-size: 13px; }
 th.crit-col { height: 275px; padding: 10px 4px 8px; font-size: 13px; }
 th.crit-col .vh { writing-mode: vertical-rl; transform: rotate(180deg);
   display: inline-block; }
@@ -269,28 +274,33 @@ BODY_CORE = """<div class="wrap">
   <button class="close" type="button" id="criteriaDlgClose">Понятно</button>
 </dialog>
 
+<dialog class="tiers" id="infoDlg" aria-labelledby="infoDlgTitle">
+  <h3 id="infoDlgTitle"></h3>
+  <p id="infoDlgText"></p>
+  <button class="close" type="button" id="infoDlgClose">Понятно</button>
+</dialog>
+
 <section class="status-wrap" id="statusPanel" aria-label="Статус проверки вакансий"></section>
 
 <div class="panel">
   <div class="filters">
-    <input id="q" type="search" placeholder="Поиск по названию…" aria-label="Поиск по названию">
-    <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду рекрутмента"><option value="">Все тимлиды рекрутмента</option></select>
+    <select id="fRecruitmentLead" aria-label="Фильтр по тимлиду"><option value="">Все тимлиды</option></select>
+    <select id="fRecruiter" aria-label="Фильтр по рекрутеру"><option value="">Все рекрутеры</option></select>
     <select id="fDir" aria-label="Фильтр по направлению"><option value="">Все направления</option></select>
     <select id="fTeam" aria-label="Фильтр по команде"><option value="">Все команды</option></select>
-    <select id="fRecruiter" aria-label="Фильтр по рекрутеру"><option value="">Все рекрутеры</option></select>
-    <select id="fCritical" aria-label="Фильтр по числу критических ошибок">
-      <option value="">Критические ошибки: все</option><option value="1">1</option>
-      <option value="2">2</option><option value="3">3</option><option value="5">5+</option>
-    </select>
-    <select id="fCriticalCriterion" aria-label="Фильтр критических ошибок по критерию">
-      <option value="">Критические: все критерии</option>
+    <input id="q" type="search" placeholder="Поиск по названию…" aria-label="Поиск по названию">
+    <select id="fStatus" aria-label="Фильтр по типу замечаний">
+      <option value="">Все вакансии</option>
+      <option value="critical">Есть критичные ошибки</option>
+      <option value="warning">Только некритичные замечания</option>
+      <option value="clean">Без замечаний</option>
     </select>
     <label class="chk" id="fClosedLbl" hidden><input type="checkbox" id="fClosed"> <span>скрыть закрытые</span></label>
     <div class="spacer"></div>
     <div class="legend">
-      <span><span class="chip green">✓</span> чисто</span>
-      <span><span class="chip yellow">!</span> посмотреть</span>
-      <span><span class="chip red">✕</span> нарушение</span>
+      <span><span class="chip green">✓</span> без замечаний</span>
+      <span><span class="chip yellow">!</span> некритичное замечание</span>
+      <span><span class="chip red">✕</span> критичная ошибка</span>
     </div>
   </div>
 </div>
@@ -420,6 +430,25 @@ const criteriaDlg = document.getElementById('criteriaDlg');
 document.getElementById('criteriaBtn').onclick = () => criteriaDlg.showModal();
 document.getElementById('criteriaDlgClose').onclick = () => criteriaDlg.close();
 criteriaDlg.onclick = e => { if (e.target === criteriaDlg) criteriaDlg.close(); };
+const infoDlg = document.getElementById('infoDlg');
+document.getElementById('infoDlgClose').onclick = () => infoDlg.close();
+infoDlg.onclick = e => { if (e.target === infoDlg) infoDlg.close(); };
+const CRITERION_HELP = {
+  title: 'Название вакансии: проверяем понятность и оформление названия по гайду.',
+  discrimination: 'Требования к кандидатам: проверяем дискриминационные, незаконные и непроверяемые требования.',
+  requirements: 'Требования к кандидатам: проверяем дискриминационные, незаконные и непроверяемые требования.',
+  benefits: 'Бенефиты и преимущества работы: в описании должны быть обязательные пункты из гайда.',
+  structure: 'Нарушена структура: отсутствует обязательный блок или дополнительные требования находятся внутри обязательных.',
+  lists: 'Оформление списков: проверяем единый формат пунктов и знаки препинания.',
+  cliches: 'Клише и сленг: проверяем формулировки, которые не соответствуют гайду.',
+  typography: 'Типографика: проверяем написание терминов, оформление и требования редполитики.',
+  balance: 'Соотношение требований и преимуществ: информационный критерий из гайда.',
+};
+function showCriterionInfo(key, label) {
+  document.getElementById('infoDlgTitle').textContent = label;
+  document.getElementById('infoDlgText').textContent = CRITERION_HELP[key] || 'Описание этого критерия доступно в разделе «Критерии». ';
+  infoDlg.showModal();
+}
 
 // ---------- тема ----------
 const themeBtn = document.getElementById('themeBtn');
@@ -490,13 +519,9 @@ function updateLeadDependentOptions() {
   updateOptionsForLead('fTeam', teams, v => v.team, 'Все команды');
 }
 updateLeadDependentOptions();
-{
-  const sel = document.getElementById('fCriticalCriterion');
-  DATA.criteria.forEach(c => sel.append(new Option(c.label, c.key)));
-}
 
 // состояние фильтров в URL-хеше
-const FIELDS = ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'];
+const FIELDS = ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter', 'fStatus', 'fClosed'];
 function saveHash() {
   const p = new URLSearchParams();
   for (const id of FIELDS) {
@@ -520,7 +545,7 @@ function loadHash() {
 
 function frequent(mode) {
   const severity = mode === 'critical' ? 'red' : 'yellow';
-  return DATA.criteria.map(c => ({ label: c.label, n: DATA.vacancies.filter(v =>
+  return DATA.criteria.map(c => ({ key: c.key, label: c.label, n: DATA.vacancies.filter(v =>
     (v.criteria[c.key]?.comments ?? []).some(x => x.severity === severity)).length,
   })).filter(x => x.n).sort((a, b) => b.n - a.n).slice(0, 2);
 }
@@ -548,18 +573,19 @@ function statusPanel() {
   const c = configs[mode];
   const items = mode === 'clean'
     ? `<ul><li><b>${clean}</b> вакансий прошли все проверки</li><li><b>0</b> ошибок найдено</li></ul>`
-    : `<ul>${frequent(mode).map(x => `<li><b>${x.n}</b> ${esc(x.label)}</li>`).join('') || '<li>Замечаний этого типа нет</li>'}</ul>`;
+    : `<ul>${frequent(mode).map(x => `<li><b>${x.n}</b> ${esc(x.label)}<button class="info-btn criterion-info" type="button" data-key="${esc(x.key)}" data-label="${esc(x.label)}" aria-label="Что проверяет критерий ${esc(x.label)}">i</button></li>`).join('') || '<li>Замечаний этого типа нет</li>'}</ul>`;
   document.getElementById('statusPanel').innerHTML = `<div class="status-hero ${c.cls}"><div class="status-kicker">${c.kicker}</div>
       <h2>${c.headline}</h2><div class="status-meta">Проверено ${n} из ${n} вакансий · ${c.detail} · обновлено ${DATA.generated_at || 'недавно'}</div>
       <div class="status-actions"><button class="status-primary" id="showStatus" type="button">${mode === 'critical' ? 'Показать вакансии с ошибками' : mode === 'clean' ? 'Посмотреть все вакансии' : `Показать ${c.count} вакансий`}</button>
-      <button class="status-secondary" id="showCriteria" type="button">${mode === 'clean' ? 'Критерии проверки' : 'Как исправлять ошибки'}</button></div>
+      <a class="status-secondary" href="https://llm.k.avito.ru/chat/6a8b721d24464f05bd715d71" target="_blank" rel="noopener">Помощник по исправлению ошибок ↗</a></div>
       <div class="status-frequent"><span class="label">${c.frequent}</span>${items}</div></div>`;
   document.getElementById('showStatus').onclick = () => {
-    if (mode === 'critical') { problemsOnly = true; document.getElementById('fCritical').value = ''; }
+    if (mode === 'critical') { problemsOnly = true; document.getElementById('fStatus').value = ''; }
     render();
     requestAnimationFrame(() => document.getElementById('tbl').scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
-  document.getElementById('showCriteria').onclick = () => criteriaDlg.showModal();
+  document.querySelectorAll('.criterion-info').forEach(btn => btn.onclick = () =>
+    showCriterionInfo(btn.dataset.key, btn.dataset.label));
 }
 
 function header() {
@@ -570,11 +596,14 @@ function header() {
     th.className = cls || '';
     if (titleAttr) th.title = titleAttr;
     const arrow = sortKey === key ? ` <span class="arrow">${sortAsc ? '▲' : '▼'}</span>` : '';
-    th.innerHTML = cls === 'crit-col' ? `<span class="vh">${text}${arrow}</span>` : text + arrow;
+    const info = key in CRITERION_HELP ? `<button class="info-btn" type="button" aria-label="Что проверяет критерий ${esc(text)}">i</button>` : '';
+    th.innerHTML = cls === 'crit-col' ? `<span class="vh">${text}${arrow}${info}</span>` : text + arrow + info;
     th.tabIndex = 0;
     const act = () => { sortAsc = sortKey === key ? !sortAsc : false; sortKey = key; render(); };
     th.onclick = act;
     th.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } };
+    const infoBtn = th.querySelector('.info-btn');
+    if (infoBtn) infoBtn.onclick = e => { e.stopPropagation(); showCriterionInfo(key, text); };
     tr.append(th);
   };
   mk('title', 'Вакансия');
@@ -588,15 +617,13 @@ function visible() {
   const t = document.getElementById('fTeam').value;
   const recruitmentLead = document.getElementById('fRecruitmentLead').value;
   const recruiter = document.getElementById('fRecruiter').value;
-  const criticalFilter = document.getElementById('fCritical').value;
-  const criticalCriterion = document.getElementById('fCriticalCriterion').value;
+  const status = document.getElementById('fStatus').value;
   const hc = document.getElementById('fClosed').checked;
   let rows = DATA.vacancies.filter(v =>
     (!q || v.title.toLowerCase().includes(q)) &&
     (!problemsOnly || v._reds > 0 || v._yellows > 0) &&
     (!d || v.direction === d) && (!t || v.team === t) && (!recruitmentLead || RECRUITER_TO_LEAD[v.recruiter] === recruitmentLead) && (!recruiter || v.recruiter === recruiter) &&
-    (!criticalFilter || (criticalFilter === '5' ? v._reds >= 5 : v._reds === +criticalFilter)) &&
-    (!criticalCriterion || (v.criteria[criticalCriterion]?.comments ?? []).some(x => x.severity === 'red')) &&
+    (!status || (status === 'critical' ? v._reds > 0 : status === 'warning' ? v._reds === 0 && v._yellows > 0 : v._reds === 0 && v._yellows === 0)) &&
     (!hc || !v.closed));
   rows.sort((a, b) => {
     let x, y;
@@ -614,8 +641,7 @@ function resetFilters() {
   problemsOnly = false;
   for (const id of ['q', 'fDir', 'fTeam', 'fRecruitmentLead', 'fRecruiter']) document.getElementById(id).value = '';
   updateLeadDependentOptions();
-  document.getElementById('fCritical').value = '';
-  document.getElementById('fCriticalCriterion').value = '';
+  document.getElementById('fStatus').value = '';
   document.getElementById('fClosed').checked = false;
   render();
 }
@@ -668,8 +694,13 @@ function render() {
   saveHash();
   statusPanel();
   const rows = visible();
+  const statusTitle = {
+    critical: 'Вакансии с критичными ошибками',
+    warning: 'Вакансии только с некритичными замечаниями',
+    clean: 'Вакансии без замечаний',
+  };
   document.getElementById('tableTitle').textContent = problemsOnly ? 'Вакансии с ошибками' :
-    document.getElementById('fCritical').value ? 'Вакансии с критическими ошибками' : 'Все проверенные вакансии';
+    statusTitle[document.getElementById('fStatus').value] || 'Все проверенные вакансии';
   document.getElementById('count').textContent =
     `Показано ${rows.length} из ${DATA.vacancies.length}`;
   const allOpen = rows.length && rows.every(v => open.has(v.file));
@@ -762,7 +793,7 @@ function render() {
 }
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-['q', 'fDir', 'fTeam', 'fRecruiter', 'fCritical', 'fCriticalCriterion', 'fClosed'].forEach(id =>
+['q', 'fDir', 'fTeam', 'fRecruiter', 'fStatus', 'fClosed'].forEach(id =>
   document.getElementById(id).addEventListener('input', render));
 document.getElementById('fRecruitmentLead').addEventListener('input', () => { updateLeadDependentOptions(); render(); });
 document.getElementById('csvBtn').onclick = exportCsv;
