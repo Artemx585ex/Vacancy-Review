@@ -246,7 +246,6 @@ BODY_CORE = """<div class="wrap">
       <span class="eyebrow">career.avito.com</span></div>
     <h1>Ревью вакансий <span class="hl">по гайду</span></h1>
     <div class="sub">Проверка описаний вакансий на соответствие гайду</div>
-    <div class="upd" id="updline"></div>
   </div>
   <div class="head-btns">
     <button class="theme-btn" id="updBtn" type="button" hidden aria-haspopup="dialog">⟳ Обновить данные</button>
@@ -345,12 +344,6 @@ DATA.vacancies.forEach(v => {
 // кнопка «Обновить» работает только через локальный serve.py — на файле,
 // открытом двойным кликом, и на опубликованной ссылке бэкенда нет
 const SERVED = ['localhost', '127.0.0.1'].includes(location.hostname);
-const updateInfo = [];
-if (DATA.refresh_schedule) updateInfo.push(`<b>${DATA.refresh_schedule}</b>`);
-if (DATA.generated_at) updateInfo.push(`последнее обновление: <b>${DATA.generated_at}</b>`);
-if (SERVED) updateInfo.push('обновить можно кнопкой «⟳ Обновить данные» в правом верхнем углу');
-document.getElementById('updline').innerHTML = updateInfo.join(' · ');
-
 const updBtn = document.getElementById('updBtn');
 const updDlg = document.getElementById('updDlg');
 const updLog = document.getElementById('updLog');
@@ -436,6 +429,7 @@ infoDlg.onclick = e => { if (e.target === infoDlg) infoDlg.close(); };
 const CRITERION_HELP = {
   title: 'Название вакансии: проверяем понятность и оформление названия по гайду.',
   discrimination: 'Требования к кандидатам: проверяем дискриминационные, незаконные и непроверяемые требования.',
+  law: 'Требования к кандидатам: проверяем дискриминационные, незаконные и непроверяемые требования.',
   requirements: 'Требования к кандидатам: проверяем дискриминационные, незаконные и непроверяемые требования.',
   benefits: 'Бенефиты и преимущества работы: в описании должны быть обязательные пункты из гайда.',
   structure: 'Нарушена структура: отсутствует обязательный блок или дополнительные требования находятся внутри обязательных.',
