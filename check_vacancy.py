@@ -398,7 +398,10 @@ def check_law_compliance(vac):
 
 def check_benefits_and_advantages(vac):
     benefits = check_benefits(vac)
-    return grouped_finding("red", "Не соблюдены обязательные бенефиты", benefits)
+    # Отсутствие обязательных бенефитов — замечание к качеству описания,
+    # а не критическое нарушение. Показываем его в жёлтой зоне.
+    benefits = [("yellow", text, quote) for _, text, quote in benefits]
+    return grouped_finding("yellow", "Не соблюдены обязательные бенефиты", benefits)
 
 
 def check_orthography_typography(vac):
