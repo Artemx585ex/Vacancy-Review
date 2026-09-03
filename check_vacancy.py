@@ -149,15 +149,15 @@ def check_structure(vac):
     if not tasks:
         # Несуществующий блок подсветить нельзя: ведём к ближайшему разделу.
         near = requirements or benefits or (sections[0] if sections else None)
-        out.append(("red", "нет блока задач («Какие задачи вас ждут»)",
+        out.append(("yellow", "нет блока задач («Какие задачи вас ждут»)",
                     near["heading"] if near else None))
     if not requirements:
         near = tasks or benefits or (sections[0] if sections else None)
-        out.append(("red", "нет блока требований («Мы ждём, что вы»)",
+        out.append(("yellow", "нет блока требований («Мы ждём, что вы»)",
                     near["heading"] if near else None))
     if not benefits:
         near = requirements or tasks or (sections[-1] if sections else None)
-        out.append(("red", "нет блока условий («Работа у нас — это»)",
+        out.append(("yellow", "нет блока условий («Работа у нас — это»)",
                     near["heading"] if near else None))
 
     # По таблице «желательно» и похожие дополнительные требования должны быть
@@ -167,7 +167,7 @@ def check_structure(vac):
             match = ADDITIONAL_REQUIREMENT.search(item)
             if match:
                 out.append((
-                    "red",
+                    "yellow",
                     f"дополнительное требование в обязательном блоке: «{shorten(item)}» — вынесите его в «Будет здорово, если вы»",
                     item,
                 ))
@@ -418,18 +418,21 @@ def check_orthography_typography(vac):
 
 def check_structure_and_format(vac):
     structure = check_structure(vac)
-    missing = [f for f in structure if f[0] == "red" and f[1].startswith("нет блока")]
-    additional = [f for f in structure if f[0] == "red" and not f[1].startswith("нет блока")]
+    missing = [f for f in structure if f[1].startswith("нет блока")]
+    additional = [f for f in structure if f[1].startswith("дополнительное требование в обязательном блоке")]
     nested_additional = [
         f for f in structure
         if f[0] == "yellow" and f[1].startswith((
             "повторное дополнительное требование", "повторный блок «Будет здорово"
         ))
     ]
-    product_tech = [f for f in structure if f[0] == "yellow" and f not in nested_additional]
+    product_tech = [
+        f for f in structure
+        if f not in missing and f not in additional and f not in nested_additional
+    ]
     return (
-        grouped_finding("red", "Пропущены обязательные блоки", missing)
-        + grouped_finding("red", "Дополнительные требования находятся в обязательном блоке", additional)
+        grouped_finding("yellow", "Пропущены обязательные блоки", missing)
+        + grouped_finding("yellow", "Дополнительные требования находятся в обязательном блоке", additional)
         + grouped_finding("yellow", "Повторные дополнительные требования", nested_additional)
         + grouped_finding("yellow", "Структурные замечания", product_tech)
         + grouped_finding("yellow", "Ошибки оформления списков", check_list_format(vac))
@@ -483,7 +486,8 @@ def check_meaning(vac: dict, enabled: bool) -> list[tuple]:
 заголовков и фиксированных бенефитов: это проверяет код. Верни максимум 6 уникальных
 отклонений с короткой цитатой из текста. Критичной считай только ситуацию, когда
 содержимое обязательного блока не даёт кандидату понять обязанности или требования;
-все остальные замечания — некритичные."""
+в этой проверке всё равно верни замечание как некритичное: критичные случаи
+обрабатываются отдельными правилами кода."""
     payload = {
         "model": os.environ.get("OPENAI_MODEL", "gpt-5-mini"),
         "store": False,
@@ -537,7 +541,9 @@ def check_meaning(vac: dict, enabled: bool) -> list[tuple]:
         if key in seen:
             continue
         seen.add(key)
-        severity = "red" if issue["severity"] == "critical" else "yellow"
+        # Смысловые замечания не входят в перечень критичных нарушений из
+        # согласованной матрицы: они всегда показываются в жёлтой зоне.
+        severity = "yellow"
         quote = issue["evidence"].strip()
         result.append((severity, f"ИИ: {issue['message']}", quote or None))
     return result
